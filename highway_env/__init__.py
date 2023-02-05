@@ -27,8 +27,17 @@ def register_highway_envs():
     )
     # bs env
     register(
-    id='highway-bs-v0',
+    id='highwaymo-bs-v0',
     entry_point='highway_env.envs:HighwayEnvBS',
+    )
+
+    register(
+    id="mo-highway-v0", 
+    entry_point="highway_env.envs:MOHighwayEnv",
+    )
+
+    register(id="mo-highway-fast-v0", 
+    entry_point="highway_env.envs:MOHighwayEnvFast",
     )
 
     # intersection_env.py
