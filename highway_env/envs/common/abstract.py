@@ -6,6 +6,7 @@ from gym import Wrapper
 from gym.wrappers import RecordVideo
 from gym.utils import seeding
 import numpy as np
+import pandas as pd
 
 from highway_env import utils
 from highway_env.envs.common.action import action_factory, Action, DiscreteMetaAction, ActionType
@@ -92,7 +93,8 @@ class AbstractEnv(gym.Env):
                 "type": "Kinematics"
             },
             "action": {
-                "type": "DiscreteMetaAction"
+                # "type": "DiscreteMetaAction"
+                "type": "DiscreteDualObjectMetaAction"
             },
             "simulation_frequency": 15,  # [Hz]
             "policy_frequency": 1,  # [Hz]

@@ -7,6 +7,15 @@ from highway_env.road.road import Road, LaneIndex, Route
 from highway_env.utils import Vector
 from highway_env.vehicle.kinematics import Vehicle
 
+from highway_env.envs import highway_env	
+from highway_env.envs.common import abstract	
+from typing import TYPE_CHECKING	
+if TYPE_CHECKING:	
+    from highway_env.envs.highway_env import HighwayEnvBS	
+
+from ..sinr import *	
+from ..Shared import *
+
 
 class ControlledVehicle(Vehicle):
     """
@@ -203,6 +212,7 @@ class ControlledVehicle(Vehicle):
 class MDPVehicle(ControlledVehicle):
 
     """A controlled vehicle with a specified discrete range of allowed target speeds."""
+    # DEFAULT_TARGET_SPEEDS = np.linspace (10, 20, 3) (15, 25, 3) (20, 30, 3) (25, 35, 3) 
     DEFAULT_TARGET_SPEEDS = np.linspace(20, 30, 3)
 
     def __init__(self,
@@ -313,3 +323,126 @@ class MDPVehicle(ControlledVehicle):
                 if (t % int(trajectory_timestep / dt)) == 0:
                     states.append(copy.deepcopy(v))
         return states
+
+	# 自定义一个MDPVehicle, 不要修改原来的东西		
+class MyMDPVehicle(MDPVehicle):		
+    def __init__(self,		
+                 id: int,		
+                 road: Road,		
+                 position: List[float],		
+                 heading: float = 0,		
+                 speed: float = 0,		
+                 max_dd: float = 100,   # 检测距离, 会返回该距离内的基站数量		
+                 target_lane_index: Optional[LaneIndex] = None,		
+                 target_speed: Optional[float] = None,		
+                 target_speeds: Optional[Vector] = None,		
+                 target_current_bs: Optional[int] = None,		
+                 target_ho: int = 0,		
+                 target_available_rfs: int = 0,		
+                 target_available_thzs: int = 0,		
+                 route: Optional[Route] = None) -> None:		
+        self.target_current_bs = target_current_bs		
+        self.max_detection_distance = max_dd		
+        self.target_ho = target_ho		
+        self.id = id		
+        self.target_available_rfs = target_available_rfs		
+        self.target_available_thzs = target_available_thzs		
+        super().__init__(road, position, heading, speed, target_lane_index,		
+                         target_speed, target_speeds, route)		
+    		
+    def to_dict(self, origin_vehicle: "Vehicle" = None, observe_intentions: bool = True) -> dict:		
+        d = super().to_dict(origin_vehicle, observe_intentions)		
+        # rf_cnt, thz_cnt		
+        rf_dist, thz_dist = self.road.get_distance(self.id)		
+        d['rf_cnt'] = np.sum(rf_dist <= self.max_detection_distance)		
+        d['thz_cnt'] = np.sum(thz_dist <= self.max_detection_distance)		
+        return d		
+    def act(self, action = None) -> None:		
+        		
+        if action is None:		
+            super().act()		
+            self.action["tele_action"] = self.target_current_bs		
+            return		
+        action, action_tele = action		
+        # 交通学的action		
+        super().act(action)		
+        # 通讯的action.		
+        old = self.target_current_bs		
+        new = old		
+        if action_tele == "t1":  # t1_dr_control		
+            new = self.t1_dr_control()		
+		
+        elif action_tele == "t2":		
+            new =  self.t2_with_threshold_control()		
+
+        elif action_tele == "t3":		
+            new = self.t3_with_ho_threshold_control(old)		
+	
+        if(old is not None and old != new):		
+            self.target_ho += 1		
+        self.road.new_connect(old, new)	
+        self.target_current_bs = new	
+        self.action["tele_action"] = self.target_current_bs	
+    def t1_dr_control(self):	
+        '''	
+        获得距离, 根据距离计算信号强度, 根据连接数量选择最大的可行信号	
+        Input T1	
+        Find the dr table	
+        connect with the maximum data rate BS under the BS capacity. 	
+        If exceed the BS capacity, connect to the second maximum data rate BS.	
+        self is defined as current vehicle.	
+        '''	
+        'tele action: dr only'	
+        # print("vid is ++++++++++",self._get_vehicle_id)	
+        # my_instance = self.env()	
+        # result_rf,result_thz = ControlledVehicle.get_rf_thz_info_for_specific_v(self.env._get_bs_assignment_table(),self._get_vehicle_id())	
+        vid = self.id	
+        # 不要对aim_bs原地修改	
+        aim_bs = self.road.get_total_dr()[vid]	
+        rest = self.road.get_conn_rest()	
+        	
+        # 以下部分替代了 HighwayEnvBS.recursive_select_max_bs() 函数	
+        aim_bs_mm = 10 + aim_bs.max() - aim_bs.min()	
+        vacant = aim_bs - (rest <= 0) * aim_bs_mm	
+        bid = np.argmax(vacant)	
+        # bid是基站的id号	
+        return bid	
+
+    def t2_with_threshold_control(self):	
+        '''	
+        tele action:	
+        with bs threshold only 	
+        '''	
+        vid = self.id	
+        aim_bs = self.road.get_total_dr()[vid]	
+        rest = self.road.get_conn()	
+        # rest + 1e-8: 防止出现 除0 操作	
+        aim_bs = aim_bs / (rest + 1e-8)	
+        	
+        aim_bs_mm = 10 + aim_bs.max() - aim_bs.min()	
+        vacant = aim_bs - (rest <= 0) * aim_bs_mm	
+        bid = np.argmax(vacant)	
+        return bid	
+
+    def t3_with_ho_threshold_control(self, current_bs):	
+        '''	
+        tele action:	
+        with bs threshold  and ho penalty	
+        '''	
+        vid = self.id	
+        aim_bs = self.road.get_total_dr()[vid]	
+        rest = self.road.get_conn()	
+        aim_bs = aim_bs / (rest + 1e-8)	
+        	
+        n_rf = self.road.rf_bs_count	
+        n_thz = self.road.thz_bs_count	
+        coef = np.array([0.8] * n_rf + [0.5] * n_thz)	
+        if current_bs is not None:	
+            coef[current_bs] = 1	
+        aim_bs = coef * aim_bs	
+        	
+        aim_bs_mm = 10 + aim_bs.max() - aim_bs.min()	
+        vacant = aim_bs - (rest <= 0) * aim_bs_mm	
+        bid = np.argmax(vacant)	
+        return bid	
+   

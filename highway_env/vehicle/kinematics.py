@@ -223,9 +223,19 @@ class Vehicle(RoadObject):
             for key in ['x', 'y', 'vx', 'vy']:
                 d[key] -= origin_dict[key]
         return d
+    # 最好不要对原始类做修改. 需要的函数可以写在自定义的派生类里
 
     def __str__(self):
+    # TODO id有可能重复. 最好不要 % 1000
+
         return "{} #{}: {}".format(self.__class__.__name__, id(self) % 1000, self.position)
 
     def __repr__(self):
         return self.__str__()
+
+    def _get_vehicle_id(self):
+        # test_str = Vehicle.__str__(self)
+        # m = re.search(r'\#(.*?)\:', test_str).group(1)
+        # m = "v" + m
+        m = f'v{id(self) % 1000}'
+        return m

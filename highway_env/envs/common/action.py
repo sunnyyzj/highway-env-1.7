@@ -9,7 +9,7 @@ from highway_env.utils import Vector
 from highway_env.vehicle.behavior import IDMVehicle
 from highway_env.vehicle.dynamics import BicycleVehicle
 from highway_env.vehicle.kinematics import Vehicle
-from highway_env.vehicle.controller import MDPVehicle
+from highway_env.vehicle.controller import MDPVehicle, MyMDPVehicle
 
 if TYPE_CHECKING:
     from highway_env.envs.common.abstract import AbstractEnv
@@ -266,6 +266,89 @@ class DiscreteMetaAction(ActionType):
         return actions
 
 
+# here
+class DiscreteDualObjectMetaAction(ActionType):
+    """
+    An discrete action space of meta-actions: lane changes, and cruise control set-point.
+    """
+    ACTIONS_ALL = {
+        0: ['LANE_LEFT','t1'],
+        1: ['IDLE','t1'],
+        2: ['LANE_RIGHT','t1'],
+        3: ['FASTER','t1'],
+        4: ['SLOWER','t1'],
+        5: ['LANE_LEFT','t2'],
+        6: ['IDLE','t2'],
+        7: ['LANE_RIGHT','t2'],
+        8: ['FASTER','t2'],
+        9: ['SLOWER','t2'],
+        10: ['LANE_LEFT','t3'],
+        11: ['IDLE','t3'],
+        12: ['LANE_RIGHT','t3'],
+        13: ['FASTER','t3'],
+        14: ['SLOWER','t3'],
+    }
+    """A mapping of action indexes to labels."""
+    ACTIONS_LONGI = {
+        0: ['SLOWER','t1'],
+        1: ['IDLE','t1'],
+        2: ['FASTER','t1'],
+        3: ['SLOWER','t2'],
+        4: ['IDLE','t2'],
+        5: ['FASTER','t2'],
+        6: ['SLOWER','t3'],
+        7: ['IDLE','t3'],
+        8: ['FASTER','t3']
+    }
+    """A mapping of longitudinal action indexes to labels."""
+    ACTIONS_LAT = {
+        0: ['LANE_LEFT','t1'],
+        1: ['IDLE','t1'],
+        2: ['LANE_RIGHT','t1'],
+        3: ['LANE_LEFT','t2'],
+        4: ['IDLE','t2'],
+        5: ['LANE_RIGHT','t2'],
+        6: ['LANE_LEFT','t3'],
+        7: ['IDLE','t3'],
+        8: ['LANE_RIGHT','t3'],
+    }
+    """A mapping of lateral action indexes to labels."""
+    def __init__(self,
+                 env: 'AbstractEnv',
+                 longitudinal: bool = True,
+                 lateral: bool = True,
+                 target_speeds: Optional[Vector] = None,
+                 **kwargs) -> None:
+        """
+        Create a discrete action space of meta-actions.
+        :param env: the environment
+        :param longitudinal: include longitudinal actions
+        :param lateral: include lateral actions
+        :param target_speeds: the list of speeds the vehicle is able to track
+        """
+        super().__init__(env)
+        self.longitudinal = longitudinal
+        self.lateral = lateral
+        self.vehicle_type = MyMDPVehicle
+        self.target_speeds = np.array(target_speeds) if target_speeds is not None else self.vehicle_type.DEFAULT_TARGET_SPEEDS
+        self.actions = self.ACTIONS_ALL if longitudinal and lateral \
+            else self.ACTIONS_LONGI if longitudinal \
+            else self.ACTIONS_LAT if lateral \
+            else None
+        # print(self.actions)
+        if self.actions is None:
+            raise ValueError("At least longitudinal or lateral actions must be included")
+        self.actions_indexes = {v[0]: k for k, v in self.actions.items()}
+    def space(self) -> spaces.Space:
+        return spaces.Discrete(len(self.actions))
+    @property
+    def vehicle_class(self) -> Callable:
+        return functools.partial(self.vehicle_type, target_speeds=self.target_speeds)
+    def act(self, action: int) -> None:
+        # 建议action用二元组表示(神经网络的输出为2个元素): [交通动作, 通信动作]. 尚未实现
+        self.controlled_vehicle.act(self.actions[action])#self.controlled_vehicle.act(self.actions[action][0])
+
+
 class MultiAgentAction(ActionType):
     def __init__(self,
                  env: 'AbstractEnv',
@@ -304,5 +387,7 @@ def action_factory(env: 'AbstractEnv', config: dict) -> ActionType:
         return DiscreteMetaAction(env, **config)
     elif config["type"] == "MultiAgentAction":
         return MultiAgentAction(env, **config)
+    elif config["type"] == "DiscreteDualObjectMetaAction":
+        return DiscreteDualObjectMetaAction(env, **config)
     else:
         raise ValueError("Unknown action type")
