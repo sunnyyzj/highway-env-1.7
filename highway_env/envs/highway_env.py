@@ -338,10 +338,17 @@ class HighwayEnvBS(HighwayEnvFast):
                / len(self.controlled_vehicles)
         # return sum_total_reward #,sum_tr_reward,sum_te_reward
 
-    # TODO: 什么时候会调用这个函数?
+    # TODO: 什么时候会调用这个函数? MORL   very important
     def _rewards(self, action: int) -> Dict[Text, float]:
         """Multi-objective rewards, for cooperative agents."""
-        agents_rewards = [self._agent_rewards(action, vehicle) for vehicle in self.controlled_vehicles]
+
+        # agents_rewards = [self._agent_rewards(action, vehicle) for vehicle in self.controlled_vehicles]
+        # return {
+        #     name: sum(agent_rewards[name] for agent_rewards in agents_rewards) / len(agents_rewards)
+        #     for name in agents_rewards[0].keys()
+        # }
+
+        agents_rewards = [self.get_seperate_reward(action, vehicle) for vehicle in self.controlled_vehicles]
         return {
             name: sum(agent_rewards[name] for agent_rewards in agents_rewards) / len(agents_rewards)
             for name in agents_rewards[0].keys()
@@ -412,9 +419,11 @@ class HighwayEnvBS(HighwayEnvFast):
                     [self.config["collision_reward"], self.config["high_speed_reward"] + self.config["right_lane_reward"]],
                     [0, 1])
         tran_reward *= rewards['on_road_reward']
+
+        tele_reward = self._agent_rewards(action, vehicle)["tele_reward"]
         return {
             "tran_reward": float(tran_reward),
-            # "tele_reward": float(tele_reward),
+            "tele_reward": float(tele_reward),
         }
     
     def get_ho(self, action: int, vehicle: Vehicle) -> float:
@@ -542,8 +551,3 @@ result	    -2	1	-1	1	2	3	0	0	2	1
         num_vacant = int(vacant_list.loc[bs])
 
         return (num_vacant > 0)
-
-register(
-    id='highway-bs-v0',
-    entry_point='highway_env.envs:HighwayEnvBS',
-)
