@@ -12,7 +12,7 @@ from gymnasium.spaces import (
     Text,
     Tuple,
 )
-from highway_env.envs import HighwayEnv, HighwayEnvFast
+from highway_env.envs import HighwayEnv, HighwayEnvFast, HighwayEnvBS
 
 
 class MOHighwayEnv(HighwayEnv):
@@ -84,6 +84,35 @@ class MOHighwayEnvFast(HighwayEnvFast):
             dtype=np.float32,
         )
         vec_reward *= rewards["on_road_reward"]
+        info["original_reward"] = reward
+        return obs, vec_reward, terminated, truncated, info
+
+class MOHighwayEnvFastBS(HighwayEnvBS):
+    """A multi-objective version of the HighwayFastEnv environment."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.reward_space = Box(low=-2.0, high=3.0, shape=(2,), dtype=np.float32)
+        self.observation_space = _convert_space(self.observation_space)
+        self.action_space = _convert_space(self.action_space)
+
+    def reset(self, seed=None, **kwargs):
+        obs, info = super().reset(seed=seed, **kwargs)
+        self.observation_space = _convert_space(self.observation_space)
+        self.action_space = _convert_space(self.action_space)
+        return obs, info
+
+    def step(self, action):
+        obs, reward, terminated, truncated, info = super().step(action)
+        rewards = info["rewards"]
+        vec_reward = np.array(
+            [
+                rewards["agents_tran_all_rewards"] * rewards["on_road_reward"],
+                rewards["agents_tele_all_rewards"],
+            ],
+            dtype=np.float32,
+        )
+        # vec_reward *= rewards["on_road_reward"]
         info["original_reward"] = reward
         return obs, vec_reward, terminated, truncated, info
 

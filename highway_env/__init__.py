@@ -40,6 +40,10 @@ def register_highway_envs():
     entry_point="highway_env.envs:MOHighwayEnvFast",
     )
 
+    register(id="mo-highwaybs-fast-v0", 
+    entry_point="highway_env.envs:MOHighwayEnvFastBS",
+    )
+
     # intersection_env.py
     register(
         id='intersection-v0',
