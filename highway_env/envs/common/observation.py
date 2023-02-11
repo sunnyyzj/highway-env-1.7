@@ -743,5 +743,7 @@ def observation_factory(env: 'AbstractEnv', config: dict) -> ObservationType:
         return LidarObservation(env, **config)
     elif config["type"] == "ExitObservation":
         return ExitObservation(env, **config)
+    elif config["type"] == "KinematicsTele":
+        return KinematicTeleObservation(env, **config)
     else:
         raise ValueError("Unknown observation type")
