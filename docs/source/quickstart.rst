@@ -18,18 +18,18 @@ Here is a quick example of how to create an environment:
 
 .. jupyter-execute::
 
-  import gym
+  import gymnasium as gym
   from matplotlib import pyplot as plt
   %matplotlib inline
 
-  env = gym.make('highway-v0')
+  env = gym.make('highway-v0', render_mode='rgb_array')
   env.reset()
   for _ in range(3):
       action = env.action_type.actions_indexes["IDLE"]
       obs, reward, done, truncated, info = env.step(action)
       env.render()
 
-  plt.imshow(env.render(mode="rgb_array"))
+  plt.imshow(env.render())
   plt.show()
 
 All the environments
@@ -70,7 +70,7 @@ For example, the number of lanes can be changed with:
 
   env.config["lanes_count"] = 2
   env.reset()
-  plt.imshow(env.render(mode="rgb_array"))
+  plt.imshow(env.render())
   plt.show()
 
 .. note::
@@ -94,7 +94,7 @@ Here is an example of SB3's DQN implementation trained on ``highway-fast-v0`` wi
 
 .. code-block:: python
 
-  import gym
+  import gymnasium as gym
   import highway_env
   from stable_baselines3 import DQN
 

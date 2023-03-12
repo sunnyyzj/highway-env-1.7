@@ -1,7 +1,7 @@
 import functools
 import itertools
 from typing import TYPE_CHECKING, Optional, Union, Tuple, Callable, List
-from gym import spaces
+from gymnasium import spaces
 import numpy as np
 
 from highway_env import utils
@@ -236,8 +236,8 @@ class DiscreteMetaAction(ActionType):
     def vehicle_class(self) -> Callable:
         return functools.partial(MDPVehicle, target_speeds=self.target_speeds)
 
-    def act(self, action: int) -> None:
-        self.controlled_vehicle.act(self.actions[action])
+    def act(self, action: Union[int, np.ndarray]) -> None:
+        self.controlled_vehicle.act(self.actions[int(action)])
 
     def get_available_actions(self) -> List[int]:
         """
