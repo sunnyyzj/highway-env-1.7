@@ -185,7 +185,7 @@ class HighwayEnvBS(HighwayEnvFast):
             "lanes_count": 3, #4
             "road_start": 0,
             "road_length": 10000,
-                "observation": {
+            "observation": {
                     "type": "KinematicsTele",
                     "features": ["presence", "x", "y", "vx", "vy", 'rf_cnt', 'thz_cnt'],
                 'vehicles_count': 5,

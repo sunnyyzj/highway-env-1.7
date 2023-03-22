@@ -240,6 +240,7 @@ class KinematicObservation(ObservationType):
             self.env.np_random.shuffle(obs[1:])
         # Flatten
         return obs.astype(self.space().dtype)
+
 class KinematicTeleObservation(ObservationType):
     """Observe the kinematics of nearby vehicles."""
     FEATURES: List[str] = ["presence", "x", "y", "vx", "vy", 'rf_cnt', 'thz_cnt'] #["presence", "x", "y", "vx", "vy"]
@@ -743,5 +744,7 @@ def observation_factory(env: 'AbstractEnv', config: dict) -> ObservationType:
         return LidarObservation(env, **config)
     elif config["type"] == "ExitObservation":
         return ExitObservation(env, **config)
+    elif config["type"] == "KinematicsTele":
+        return KinematicTeleObservation(env, **config)
     else:
         raise ValueError("Unknown observation type")
