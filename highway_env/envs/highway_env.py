@@ -419,7 +419,7 @@ class HighwayEnvBS(HighwayEnvFast):
     
     def get_ho(self, action: int, vehicle: Vehicle) -> float:
         ho_density = vehicle.target_ho / vehicle.position[0]  # assume this is MyMDPVehicle
-        ho_prob = vehicle.target_ho/(self.steps)
+        ho_prob = vehicle.target_ho/max((self.steps),1)
 
         return {
             "ho_density": float(ho_density),
