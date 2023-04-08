@@ -539,3 +539,26 @@ class IDMVehicleWithTelecom(IDMVehicle):
         vacant = aim_bs - (rest <= 0) * aim_bs_mm
         bid = np.argmax(vacant)
         return bid
+
+# class IDMVehicleWithTelecomUAV(IDMVehicleWithTelecom):
+#     def __init__(self,
+#                 id: int,
+#                 road: Road,
+#                 position: Vector,
+#                 heading: float = 0,
+#                 speed: float = 0,
+#                 max_dd: float = 1000,   # 检测距离, 会返回该距离内的基站数量
+#                 target_lane_index: int = None,
+#                 target_speed: float = None,
+#                 route: Route = None,
+#                 enable_lane_change: bool = True,
+#                 timer: float = None,
+#                 data: dict = None,
+#                 target_current_bs: int = None):
+#         super().__init__(road, position, heading, speed, target_lane_index, target_speed, route,
+#                         enable_lane_change, timer)
+#         self.data = data if data is not None else {}
+#         self.collecting_data = True
+#         self.id = id
+#         self.max_detection_distance = max_dd
+#         self.target_current_bs = target_current_bs # or 'initial bs'

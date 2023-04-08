@@ -111,6 +111,7 @@ class RoadObject(ABC):
             'presence': 1,
             'x': self.position[0],
             'y': self.position[1],
+            # 'z': self.position[2],
             'vx': 0.,
             'vy': 0.,
             'cos_h': np.cos(self.heading),

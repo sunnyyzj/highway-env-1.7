@@ -396,6 +396,7 @@ class BSRoad(Road):
         
         # 位置
         self.bs_pos = np.zeros((self.rf_bs_count + self.thz_bs_count, 2))
+        self.bs_pos_3d = np.hstack((self.bs_pos, np.zeros((self.rf_bs_count + self.thz_bs_count, 1))))
         # 已连接数量
         self.bs_conn = np.zeros(self.rf_bs_count + self.thz_bs_count)
         # 最大连接数量
@@ -404,6 +405,7 @@ class BSRoad(Road):
         self.dist = np.zeros(0)
         # 等同于 HighwayEnvBS._create_bs_assignment_table() 中的 total_dr
         self.total_dr = np.zeros(0)
+        self.total_dr_3d = np.zeros(0)
         # 初始化各个基站的位置
         self._set_bs_position(lane, start, length)
     
@@ -411,14 +413,29 @@ class BSRoad(Road):
         cnt = self.rf_bs_count + self.thz_bs_count
         self.bs_pos[:, 0] = np.random.random(cnt) * length + start
         self.bs_pos[:, 1] = np.random.randint(0, 2, cnt) * StraightLane.DEFAULT_WIDTH * lane
+        self.bs_pos_3d = np.hstack((self.bs_pos, np.zeros((cnt, 1)))) #assume BSs have no height
+
     
     def update(self):
         # vehicles位置更新后, 更新total_dr
         vehicles_pos = np.array([v.position for v in self.vehicles])
-        self.dist = np.sqrt(((vehicles_pos[:, None, :] - self.bs_pos)**2).sum(axis=-1))
+        vehicles_pos_3d = np.hstack((vehicles_pos, np.ones((len(vehicles_pos), 1)*100))) #assume all uavs have height of 100 m
+        dist_2d = np.sqrt(((vehicles_pos[:, None, :] - self.bs_pos)**2).sum(axis=-1))
+        self.dist = np.sqrt(((vehicles_pos_3d[:, None, :] - self.bs_pos_3d)**2).sum(axis=-1))
+
         rf_dr, _ = rf_sinr_matrix(self.dist[:, :self.rf_bs_count])
         thz_dr, _ = thz_sinr_matrix(self.dist[:, self.rf_bs_count:])
-        self.total_dr = np.c_[rf_dr, thz_dr]
+
+        '''
+        C2A Aeriation update
+        Input 3D
+        dist 2d,dist 3d, 3d bss,3d vs
+        a2c_link(dist_2d[:, :self.rf_bs_count],self.dist[:, :self.rf_bs_count],self.bs_pos_3d,vehicles_pos_3d)
+        '''
+        SNR_3d = a2c_link(dist_2d[:, :self.rf_bs_count],self.dist[:, :self.rf_bs_count],self.bs_pos_3d,vehicles_pos_3d)
+        self.total_dr_3d = SNR_3d
+        self.total_dr = SNR_3d
+        # self.total_dr = np.c_[rf_dr, thz_dr]
     
     def get_distance(self, vid):
         # rf基站, thz基站
