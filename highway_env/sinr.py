@@ -230,7 +230,7 @@ def thz_sinr_matrix(distance_matrix):
 
     STHz = gammaII * fadeRand1 * PT * np.exp(-kf * d_matrix) / (d_matrix**2) # signal matrix for THZ
     interfT = np.tile(np.sum(STHz, axis=0), (NTHz, 1)) - STHz # interference matrix for THz
-    TPrAllu1 = Wt * np.log2(1 + STHz / (NP + interfT))
+    TPrAllu1 = Wt * np.log2(1 + STHz / (NP + interfT)).T
 
     interf = interfT.T
 
