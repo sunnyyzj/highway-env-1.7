@@ -542,8 +542,4 @@ result	    -2	1	-1	1	2	3	0	0	2	1
         num_vacant = int(vacant_list.loc[bs])
 
         return (num_vacant > 0)
-
-# register(
-#     id='highway-bs-v0',
-#     entry_point='highway_env.envs:HighwayEnvBS',
-# )
+    
