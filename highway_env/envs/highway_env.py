@@ -52,7 +52,7 @@ class HighwayEnv(AbstractEnv):
             "high_speed_reward": 0.4,  # The reward received when driving at full speed, linearly mapped to zero for
                                        # lower speeds according to config["reward_speed_range"].
             "lane_change_reward": 0,   # The reward received at each lane change action.
-            "reward_speed_range": [25, 35],#[20, 30]
+            "reward_speed_range": [10, 20],#[20, 30]
             "normalize_reward": True,
             "offroad_terminal": False
         })
@@ -550,7 +550,3 @@ result	    -2	1	-1	1	2	3	0	0	2	1
         num_vacant = int(vacant_list.loc[bs])
 
         return (num_vacant > 0)
-<<<<<<< HEAD
-=======
-    
->>>>>>> master
