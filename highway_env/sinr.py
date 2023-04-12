@@ -53,6 +53,12 @@ NP = 10e-10
 #Bias=[1000 100 1 0.001 0.0001 0.0001 0.00001]#%%%0.05
 #%Bias=[ 10^6  10^5 10^4  10^4 10^3 10^3 10^3];%%%0.2
 
+## ===================== Aeriation Parameters ========================================
+eta_LoS = 1
+eta_NLoS = 20 # (0.1, 21), (1.0,20), (1.6, 23), (2.3, 34) corresponding to Suburban, Urban,Dense Urban, and Highrise Urban respectively
+f_c = 2e9 # Carrier Frequency is 850MHz 8.5e+8
+
+
 def generate_exponential_matrix(miu,m,n):
     """
     Generate Exponential matrix with mean miu with m rows and n columns
@@ -177,28 +183,31 @@ def rf_sinr_matrix(distance_matrix):
 
 def thz_sinr_matrix(distance_matrix):
     """
-    # 这个函数好像和rf_sinr_matrix是一样的?
     Convert distance matrix to sinr matrix
 
     """
     
-    NU,NRF = distance_matrix.shape # row is vehicle, column is rf bs
+    NU,NTHz = distance_matrix.shape # row is vehicle, column is rf bs
 
     d_matrix = np.array(distance_matrix)
 
-    fadeRand = generate_exponential_matrix(1,NRF,NU)
+    fadeRand1 = generate_exponential_matrix(1,NTHz,NU)
 
-    SRF = PR * gammaI * fadeRand * d_matrix.T
+    d_matrix = d_matrix.T
 
-    SRF = SRF ** (-1*alpha) #fractional_matrix_power(distance_matrix_thz,2)
-    
-    interf = SRF.sum(axis=0) - SRF
+    # SRF = PT * gammaII * fadeRand * d_matrix.T
+    # SRF = SRF ** (-1*alpha) #fractional_matrix_power(distance_matrix_thz,2)
+    # interf = SRF.sum(axis=0) - SRF
+    # NP=10e-10 #(10) ** (-10)
+    # RPrAllu1 = Wr * np.log2(1 + SRF / (NP + interf)).T
 
-    NP=10e-10 #(10) ** (-10)
-    RPrAllu1 = Wr * np.log2(1 + SRF / (NP + interf)).T
-    interf = interf.T
+    STHz = gammaII * fadeRand1 * PT * np.exp(-kf * d_matrix) / (d_matrix**2) # signal matrix for THZ
+    interfT = np.tile(np.sum(STHz, axis=0), (NTHz, 1)) - STHz # interference matrix for THz
+    TPrAllu1 = Wt * np.log2(1 + STHz / (NP + interfT))
 
-    sinr_matrix = RPrAllu1
+    interf = interfT.T
+
+    sinr_matrix = TPrAllu1
     interf_matrix = interf
 
     return sinr_matrix,interf_matrix
@@ -221,6 +230,66 @@ def sinr_with_threshold(sinr_matrix, bs_assignment):
 
     return sinr_matrix_with_threshold
 
+'''
+The a2c_link function calculates the signal-to-noise ratio (SNR) for each link between a vehicle and a base station (BS) using the 3D coordinates of the vehicles and BSs, and the distance between them. The function uses the Loss_LoS and theta_ik functions to calculate the path loss and angle of incidence, respectively.
+
+The Loss_LoS function calculates the path loss using the distance between the vehicle and BS, the carrier frequency, and the environment parameters. The function returns the path loss for both line-of-sight (LoS) and non-line-of-sight (NLoS) scenarios.
+
+The theta_ik function calculates the angle of incidence between the vehicle and BS using the 3D coordinates of the vehicle and BS. The function returns the angle in radians and degrees.
+
+The a2c_link function iterates over all vehicle-BS pairs and calculates the path loss and SNR for each link using the Loss_LoS and theta_ik functions. The function returns a matrix of SNR values.
+
+In summary, the a2c_link function calculates the SNR for each link between a vehicle and a BS using the distance, 3D coordinates, and environment parameters.
+
+'''
+
+def Loss_LoS(dist_2d,i,k):
+    # link between uav i and BS k
+    dist_ik = dist_2d[i,k]
+    loss_LoS = 20 * np.log10( (4 * pi * f_c * dist_ik)/ (3e8 + 1e-7) ) + eta_LoS # check natural base or 10 base
+    loss_NLoS = 20 * np.log10( (4 * pi * f_c * dist_ik)/ (3e8 + 1e-7) ) + eta_NLoS 
+    return loss_LoS, loss_NLoS
+
+def theta_ik(dist_3d,vehicles_pos_3d,i,k):
+    dist_3d_ik = dist_3d[i,k]
+    
+    # if len(vehicles_pos_3d[i, k]) == 3:
+    #     print(f"Vehicle {i} at position {k} has no third element!")
+    #     return None, None
+    h = vehicles_pos_3d[i,2]
+
+    # calculate the inverse tangent of y/x in radians
+    angle = math.atan(h / dist_3d_ik)
+    degrees = math.degrees(angle)
+
+    # print("angle in radians:", angle)
+    # print("angle in degrees:", math.degrees(angle))
+    return angle, degrees
+
+
+
+def a2c_link(dist_2d,dist_3d,bs_pos_3d,vehicles_pos_3d):
+    
+    NU,NRF = dist_2d.shape # row is vehicle, column is rf bs
+    a = 1 #  a and b are constants that depend on the environment.
+    b = 1 #
+    A = eta_LoS - eta_NLoS
+    B = 20 * np.log10( (4 * pi * f_c)/ (3e8 + 1e-7) ) + eta_NLoS 
+
+    SNR = np.zeros((NU,NRF))
+    for i, row in enumerate(dist_2d):
+        for k, dist_ik in enumerate(row):
+            r_ik = dist_3d[i,k]
+            # loss_LoS_ik, loss_NLoS_ik= Loss_LoS(dist_2d=dist_2d,i = i,k = k)
+            angleik, thetaik = theta_ik(dist_3d=dist_3d,vehicles_pos_3d=vehicles_pos_3d,i = i,k = k)
+            loss_ik = A/(1 + a * np.exp(-b *((180/pi) * angleik) - a)) + \
+                    20 * np.log10(r_ik/math.cos(angleik)) + B
+            SNR[i,k] = PR - loss_ik
+
+    # RPrAllu1 = Wr * np.log2(SNR / (NP) + 1).T # [v, bs]
+    # print('SNR table\n')
+    # print(SNR)
+    return SNR
 
 # def getInterf(sinr_matrix):
     

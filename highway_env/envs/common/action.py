@@ -263,6 +263,7 @@ class DiscreteMetaAction(ActionType):
             actions.append(self.actions_indexes['FASTER'])
         if self.controlled_vehicle.speed_index > 0 and self.longitudinal:
             actions.append(self.actions_indexes['SLOWER'])
+        print("get_available_actions",actions)
         return actions
 
 
@@ -347,6 +348,32 @@ class DiscreteDualObjectMetaAction(ActionType):
     def act(self, action: int) -> None:
         # 建议action用二元组表示(神经网络的输出为2个元素): [交通动作, 通信动作]. 尚未实现
         self.controlled_vehicle.act(self.actions[action])#self.controlled_vehicle.act(self.actions[action][0])
+    def get_available_actions(self) -> List[int]:
+        """
+        Get the list of currently available actions.
+
+        Lane changes are not available on the boundary of the road, and speed changes are not available at
+        maximal or minimal speed.
+
+        :return: the list of available actions
+        """
+        actions = [self.actions_indexes['IDLE']]
+        network = self.controlled_vehicle.road.network
+        for l_index in network.side_lanes(self.controlled_vehicle.lane_index):
+            if l_index[2] < self.controlled_vehicle.lane_index[2] \
+                    and network.get_lane(l_index).is_reachable_from(self.controlled_vehicle.position) \
+                    and self.lateral:
+                actions.append(self.actions_indexes['LANE_LEFT'])
+            if l_index[2] > self.controlled_vehicle.lane_index[2] \
+                    and network.get_lane(l_index).is_reachable_from(self.controlled_vehicle.position) \
+                    and self.lateral:
+                actions.append(self.actions_indexes['LANE_RIGHT'])
+        if self.controlled_vehicle.speed_index < self.controlled_vehicle.target_speeds.size - 1 and self.longitudinal:
+            actions.append(self.actions_indexes['FASTER'])
+        if self.controlled_vehicle.speed_index > 0 and self.longitudinal:
+            actions.append(self.actions_indexes['SLOWER'])
+        print("get_available_actions",actions)
+        return actions
 
 
 class MultiAgentAction(ActionType):

@@ -185,7 +185,7 @@ class HighwayEnvBS(HighwayEnvFast):
             "lanes_count": 3, #4
             "road_start": 0,
             "road_length": 10000,
-                "observation": {
+            "observation": {
                     "type": "KinematicsTele",
                     "features": ["presence", "x", "y", "vx", "vy", 'rf_cnt', 'thz_cnt'],
                 'vehicles_count': 5,
@@ -429,7 +429,6 @@ class HighwayEnvBS(HighwayEnvFast):
     def get_ho(self, action: int, vehicle: Vehicle) -> float:
         ho_density = vehicle.target_ho / vehicle.position[0]  # assume this is MyMDPVehicle
         ho_prob = vehicle.target_ho/(self.steps+1e-5) # avoid divide 0
-
         return {
             "ho_density": float(ho_density),
             "ho_prob": float(ho_prob),
@@ -551,3 +550,7 @@ result	    -2	1	-1	1	2	3	0	0	2	1
         num_vacant = int(vacant_list.loc[bs])
 
         return (num_vacant > 0)
+<<<<<<< HEAD
+=======
+    
+>>>>>>> master

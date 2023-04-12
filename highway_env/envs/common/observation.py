@@ -240,6 +240,7 @@ class KinematicObservation(ObservationType):
             self.env.np_random.shuffle(obs[1:])
         # Flatten
         return obs.astype(self.space().dtype)
+
 class KinematicTeleObservation(ObservationType):
     """Observe the kinematics of nearby vehicles."""
     FEATURES: List[str] = ["presence", "x", "y", "vx", "vy", 'rf_cnt', 'thz_cnt'] #["presence", "x", "y", "vx", "vy"]
