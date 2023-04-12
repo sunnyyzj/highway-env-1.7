@@ -182,62 +182,62 @@ def rf_sinr_matrix(distance_matrix):
 
 
 def thz_sinr_matrix(distance_matrix):
-    """
-    Convert distance matrix to sinr matrix
-
-    """
-    NU,NRF = distance_matrix.shape # row is vehicle, column is rf bs
-
-    d_matrix = np.array(distance_matrix)    # [v, bs]
-
-    fadeRand = generate_exponential_matrix(1,NRF,NU)    # [bs, v]
-
-    #signal matrix for RF
-    # SRF = gammaI*fadeRand*PR*d_matrix
-    SRF = gammaI * PR * fadeRand * d_matrix.T
-
-    SRF = SRF ** (-1 * alpha) # [bs, v]
-
-    interf = SRF.sum(axis=0) - SRF # [bs, v]
-    
-    NP=10e-10 #(10) ** (-10)
-    RPrAllu1 = Wr * np.log2(SRF / (NP + interf) + 1).T # [v, bs]
-    interf = interf.T # [v, bs]
-
-    sinr_matrix = RPrAllu1
-    interf_matrix = interf
-    # print(df)
-
-    return sinr_matrix,interf_matrix
     # """
     # Convert distance matrix to sinr matrix
 
     # """
+    # NU,NRF = distance_matrix.shape # row is vehicle, column is rf bs
+
+    # d_matrix = np.array(distance_matrix)    # [v, bs]
+
+    # fadeRand = generate_exponential_matrix(1,NRF,NU)    # [bs, v]
+
+    # #signal matrix for RF
+    # # SRF = gammaI*fadeRand*PR*d_matrix
+    # SRF = gammaI * PR * fadeRand * d_matrix.T
+
+    # SRF = SRF ** (-1 * alpha) # [bs, v]
+
+    # interf = SRF.sum(axis=0) - SRF # [bs, v]
     
-    # NU,NTHz = distance_matrix.shape # row is vehicle, column is rf bs
+    # NP=10e-10 #(10) ** (-10)
+    # RPrAllu1 = Wr * np.log2(SRF / (NP + interf) + 1).T # [v, bs]
+    # interf = interf.T # [v, bs]
 
-    # d_matrix = np.array(distance_matrix)
-
-    # fadeRand1 = generate_exponential_matrix(1,NTHz,NU)
-
-    # d_matrix = d_matrix.T
-
-    # # SRF = PT * gammaII * fadeRand * d_matrix.T
-    # # SRF = SRF ** (-1*alpha) #fractional_matrix_power(distance_matrix_thz,2)
-    # # interf = SRF.sum(axis=0) - SRF
-    # # NP=10e-10 #(10) ** (-10)
-    # # RPrAllu1 = Wr * np.log2(1 + SRF / (NP + interf)).T
-
-    # STHz = gammaII * fadeRand1 * PT * np.exp(-kf * d_matrix) / (d_matrix**2) # signal matrix for THZ
-    # interfT = np.tile(np.sum(STHz, axis=0), (NTHz, 1)) - STHz # interference matrix for THz
-    # TPrAllu1 = Wt * np.log2(1 + STHz / (NP + interfT))
-
-    # interf = interfT.T
-
-    # sinr_matrix = TPrAllu1
+    # sinr_matrix = RPrAllu1
     # interf_matrix = interf
+    # # print(df)
 
     # return sinr_matrix,interf_matrix
+    """
+    Convert distance matrix to sinr matrix
+
+    """
+    
+    NU,NTHz = distance_matrix.shape # row is vehicle, column is rf bs
+
+    d_matrix = np.array(distance_matrix)
+
+    fadeRand1 = generate_exponential_matrix(1,NTHz,NU)
+
+    d_matrix = d_matrix.T
+
+    # SRF = PT * gammaII * fadeRand * d_matrix.T
+    # SRF = SRF ** (-1*alpha) #fractional_matrix_power(distance_matrix_thz,2)
+    # interf = SRF.sum(axis=0) - SRF
+    # NP=10e-10 #(10) ** (-10)
+    # RPrAllu1 = Wr * np.log2(1 + SRF / (NP + interf)).T
+
+    STHz = gammaII * fadeRand1 * PT * np.exp(-kf * d_matrix) / (d_matrix**2) # signal matrix for THZ
+    interfT = np.tile(np.sum(STHz, axis=0), (NTHz, 1)) - STHz # interference matrix for THz
+    TPrAllu1 = Wt * np.log2(1 + STHz / (NP + interfT))
+
+    interf = interfT.T
+
+    sinr_matrix = TPrAllu1
+    interf_matrix = interf
+
+    return sinr_matrix,interf_matrix
 
 def sinr_with_threshold(sinr_matrix, bs_assignment):
     ''' 
