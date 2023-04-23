@@ -1,10 +1,9 @@
 # highway-env
 
 [![build](https://github.com/eleurent/highway-env/workflows/build/badge.svg)](https://github.com/eleurent/highway-env/actions?query=workflow%3Abuild)
-[![Documentation Status](https://readthedocs.org/projects/highway-env/badge/?version=latest)](https://highway-env.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://github.com/Farama-Foundation/HighwayEnv/actions/workflows/build-docs-dev.yml/badge.svg)](https://farama-foundation.github.io/HighwayEnv/)
 [![Downloads](https://img.shields.io/pypi/dm/highway-env)](https://pypi.org/project/highway-env/)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/63847d9328f64fce9c137b03fcafcc27)](https://app.codacy.com/manual/eleurent/highway-env?utm_source=github.com&utm_medium=referral&utm_content=eleurent/highway-env&utm_campaign=Badge_Grade_Dashboard)
-[![Coverage](https://codecov.io/gh/eleurent/highway-env/branch/master/graph/badge.svg)](https://codecov.io/gh/eleurent/highway-env)
 [![GitHub contributors](https://img.shields.io/github/contributors/eleurent/highway-env)](https://github.com/eleurent/highway-env/graphs/contributors)
 [![Environments](https://img.shields.io/github/search/Farama-Foundation/HighwayEnv/import%20filename:*_env%20path:highway_env/envs?label=environments)](#the-environments)
 
@@ -105,7 +104,7 @@ A continuous control task involving lane-keeping and obstacle avoidance.
 
 Agents solving the `highway-env` environments are available in the [eleurent/rl-agents](https://github.com/eleurent/rl-agents) and [DLR-RM/stable-baselines3](https://github.com/DLR-RM/stable-baselines3) repositories.
 
-See the [documentation](https://highway-env.readthedocs.io/en/latest/quickstart.html#training-an-agent) for some examples and notebooks.
+See the [documentation](https://farama-foundation.github.io/HighwayEnv/quickstart/#training-an-agent) for some examples and notebooks.
 
 ### [Deep Q-Network](https://github.com/eleurent/rl-agents/tree/master/rl_agents/agents/deep_q_network)
 
@@ -165,7 +164,7 @@ while not (done or truncated):
 
 ## Documentation
 
-Read the [documentation online](https://highway-env.readthedocs.io/).
+Read the [documentation online](https://farama-foundation.github.io/HighwayEnv/).
 
 ## Citing
 
@@ -211,8 +210,10 @@ List of publications & preprints using `highway-env` (please open a pull request
 *   [Deep Multi-agent Reinforcement Learning for Highway On-Ramp Merging in Mixed Traffic](https://arxiv.org/abs/2105.05701) (May 2021)
 *   [Accelerated Policy Evaluation: Learning Adversarial Environments with Adaptive Importance Sampling](https://arxiv.org/abs/2106.10566) (Jun 2021)
 *   [Learning Interaction-aware Guidance Policies for Motion Planning in Dense Traffic Scenarios](https://arxiv.org/abs/2107.04538) (Jul 2021)
+*   [Automatic Overtaking on Two-way Roads with Vehicle Interactions Based on Proximal Policy Optimization](https://ieeexplore.ieee.org/abstract/document/9575954) (Jul 2021)
 *   [Robust Predictable Control](https://arxiv.org/abs/2109.03214) (Sep 2021)
 *   [Improving Robustness of Deep Reinforcement Learning Agents: Environment Attack based on the Critic Network](https://ieeexplore.ieee.org/document/9892901) (Jul 2022)
+*   [Autonomous Highway Merging in Mixed Traffic Using Reinforcement Learning and Motion Predictive Safety Controller](https://ieeexplore.ieee.org/document/9921741) (Oct 2022)
 
 PhD theses
 *   [Reinforcement learning for Dialogue Systems optimization with user adaptation](https://hal.inria.fr/tel-02422691/) (2019)
