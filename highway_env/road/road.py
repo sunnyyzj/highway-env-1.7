@@ -419,12 +419,15 @@ class BSRoad(Road):
     def update(self):
         # vehicles位置更新后, 更新total_dr
         vehicles_pos = np.array([v.position for v in self.vehicles])
-        vehicles_pos_3d = np.hstack((vehicles_pos, np.ones((len(vehicles_pos), 1)*100))) #assume all uavs have height of 100 m
+        # vehicles_pos_3d = np.hstack((vehicles_pos, np.ones((len(vehicles_pos), 1)*100))) #assume all uavs have height of 100 m
+        vehicles_pos_3d = np.concatenate((vehicles_pos, np.expand_dims(np.ones(len(vehicles_pos))*100, axis=1)), axis=1)
+        # print('vehicle_pos_3d',vehicles_pos_3d)
+
         dist_2d = np.sqrt(((vehicles_pos[:, None, :] - self.bs_pos)**2).sum(axis=-1))
         self.dist = np.sqrt(((vehicles_pos_3d[:, None, :] - self.bs_pos_3d)**2).sum(axis=-1))
 
-        rf_dr, _ = rf_sinr_matrix(self.dist[:, :self.rf_bs_count])
-        thz_dr, _ = thz_sinr_matrix(self.dist[:, self.rf_bs_count:])
+        # rf_dr, _ = rf_sinr_matrix(self.dist[:, :self.rf_bs_count])
+        # thz_dr, _ = thz_sinr_matrix(self.dist[:, self.rf_bs_count:])
 
         '''
         C2A Aeriation update
@@ -432,7 +435,7 @@ class BSRoad(Road):
         dist 2d,dist 3d, 3d bss,3d vs
         a2c_link(dist_2d[:, :self.rf_bs_count],self.dist[:, :self.rf_bs_count],self.bs_pos_3d,vehicles_pos_3d)
         '''
-        SNR_3d = a2c_link(dist_2d[:, :self.rf_bs_count],self.dist[:, :self.rf_bs_count],self.bs_pos_3d,vehicles_pos_3d)
+        SNR_3d = a2c_link(dist_2d[:, :self.rf_bs_count],self.dist[:, :self.rf_bs_count],vehicles_pos_3d)
         self.total_dr_3d = SNR_3d
         self.total_dr = SNR_3d
         # self.total_dr = np.c_[rf_dr, thz_dr]

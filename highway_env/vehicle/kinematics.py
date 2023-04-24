@@ -250,7 +250,7 @@ class Vehicle(RoadObject):
             'presence': 1,
             'x': self.position[0],
             'y': self.position[1],
-            'z': self.position[2],
+            # 'z': self.position[2],
             'vx': self.velocity[0],
             'vy': self.velocity[1],
             'heading': self.heading,
@@ -266,7 +266,7 @@ class Vehicle(RoadObject):
             d["cos_d"] = d["sin_d"] = 0
         if origin_vehicle:
             origin_dict = origin_vehicle.to_dict()
-            for key in ['x', 'y', 'z', 'vx', 'vy']:
+            for key in ['x', 'y', 'vx', 'vy']:
                 d[key] -= origin_dict[key]
         return d
     # 最好不要对原始类做修改. 需要的函数可以写在自定义的派生类里
