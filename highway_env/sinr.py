@@ -278,7 +278,7 @@ def a2c_link(dist_2d,dist_3d,vehicles_pos_3d):
     b = 3.5 #
     A = eta_LoS - eta_NLoS
     B = 20 * np.log( (4 * pi * f_c)/ (3e8 ) ) + eta_NLoS 
-    P_Noise = 26
+    P_Noise = -95.9
     PT = 40
 
     SNR = np.zeros((NU,NRF))
@@ -291,9 +291,7 @@ def a2c_link(dist_2d,dist_3d,vehicles_pos_3d):
                     20 * np.log(r_ik/math.cos(angleik)) + B
             SNR[i,k] = PT - loss_ik - P_Noise
     
-    # SIR = SNR.T
     SIR = SNR
-    # RPrAllu1 = Wr * np.log2(SNR / (NP) + 1).T # [v, bs]
     # print(SIR)
     return SIR
 
