@@ -421,6 +421,8 @@ class BSRoad(Road):
         vehicles_pos = np.array([v.position for v in self.vehicles])
         # vehicles_pos_3d = np.hstack((vehicles_pos, np.ones((len(vehicles_pos), 1)*100))) #assume all uavs have height of 100 m
         vehicles_pos_3d = np.concatenate((vehicles_pos, np.expand_dims(np.ones(len(vehicles_pos))*100, axis=1)), axis=1)
+        print('bs_pos\n',self.bs_pos)
+        print('v3d \n' ,vehicles_pos_3d)
         # print('vehicle_pos_3d',vehicles_pos_3d)
 
         dist_2d = np.sqrt(((vehicles_pos[:, None, :] - self.bs_pos)**2).sum(axis=-1))
@@ -436,6 +438,7 @@ class BSRoad(Road):
         a2c_link(dist_2d[:, :self.rf_bs_count],self.dist[:, :self.rf_bs_count],self.bs_pos_3d,vehicles_pos_3d)
         '''
         SNR_3d = a2c_link(dist_2d[:, :self.rf_bs_count],self.dist[:, :self.rf_bs_count],vehicles_pos_3d)
+        print('sir_3d \n' ,SNR_3d)
         self.total_dr_3d = SNR_3d
         self.total_dr = SNR_3d
         # self.total_dr = np.c_[rf_dr, thz_dr]
