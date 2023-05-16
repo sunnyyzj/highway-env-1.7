@@ -4,6 +4,7 @@ from typing import List, Tuple, Dict, TYPE_CHECKING, Optional
 
 from highway_env.road.lane import LineType, StraightLane, AbstractLane, lane_from_config
 from highway_env.vehicle.objects import Landmark
+from scipy.spatial.distance import cdist
 
 if TYPE_CHECKING:
     from highway_env.vehicle import kinematics, objects
@@ -411,25 +412,76 @@ class BSRoad(Road):
     
     def _set_bs_position(self, lane, start, length):
         cnt = self.rf_bs_count + self.thz_bs_count
-        self.bs_pos[:, 0] = np.random.random(cnt) * length + start
-        self.bs_pos[:, 1] = np.random.randint(0, 2, cnt) * StraightLane.DEFAULT_WIDTH * lane
+        # self.bs_pos[:, 0] = np.random.random(cnt) * length + start
+        # self.bs_pos[:, 1] = np.random.randint(0, 2, cnt) * StraightLane.DEFAULT_WIDTH * lane
+        '''
+        disable the BSs aside the road, random distribute BSs around 1000m * 1000m field
+        '''
+        self.bs_pos[:, 0] = np.random.random(cnt)*1000
+        # self.bs_pos[:, 1] = np.random.random(cnt)*1000
+        # self.bs_pos[:, 0] = np.random.randint(0,1000,cnt)
+        self.bs_pos[:, 1] = np.random.randint(-500,500,cnt)
         self.bs_pos_3d = np.hstack((self.bs_pos, np.zeros((cnt, 1)))) #assume BSs have no height
+    '''
+    import numpy as np
 
+# Extract the positions of the BSs and UAVs from the arrays
+bs_pos = self.bs_pos[:, 0:2]  # extract only the x,y positions of the BSs
+uav_pos = vehicles_pos_3d[:, 0:3]  # extract the x,y,z positions of the UAVs
+
+# Calculate the 2D distances between the BSs and UAVs
+dist_2d = np.sqrt(np.sum((bs_pos[:, np.newaxis, :] - uav_pos[:, :, 0:2])**2, axis=2))
+
+# Calculate the 3D distances between the BSs and UAVs
+dist_3d = np.sqrt(np.sum((bs_pos[:, np.newaxis, :] - uav_pos)**2, axis=2))
+
+print("2D distances between BSs and UAVs:")
+print(dist_2d)
+
+print("3D distances between BSs and UAVs:")
+print(dist_3d)
+
+    '''
     
     def update(self):
         # vehicles位置更新后, 更新total_dr
         vehicles_pos = np.array([v.position for v in self.vehicles])
         # vehicles_pos_3d = np.hstack((vehicles_pos, np.ones((len(vehicles_pos), 1)*100))) #assume all uavs have height of 100 m
         vehicles_pos_3d = np.concatenate((vehicles_pos, np.expand_dims(np.ones(len(vehicles_pos))*100, axis=1)), axis=1)
-        print('bs_pos\n',self.bs_pos)
-        print('v3d \n' ,vehicles_pos_3d)
+        # print('bs_pos\n',self.bs_pos)
+        # print('v3d \n' ,vehicles_pos_3d)
         # print('vehicle_pos_3d',vehicles_pos_3d)
+        # np.sqrt(np.sum((bs_pos[:, np.newaxis, :] - uav_pos[:, :, 0:2])**2, axis=2))
+        # np.sqrt(np.sum((bs_pos[:, np.newaxis, :] - uav_pos)**2, axis=2))
 
-        dist_2d = np.sqrt(((vehicles_pos[:, None, :] - self.bs_pos)**2).sum(axis=-1))
-        self.dist = np.sqrt(((vehicles_pos_3d[:, None, :] - self.bs_pos_3d)**2).sum(axis=-1))
+        # dist_2d = np.sqrt(((vehicles_pos[:, None, :] - self.bs_pos)**2).sum(axis=-1))
+        # print('bs_pos\n',self.bs_pos)
+        # print('bs_pos3d\n',self.bs_pos_3d)
+        # print('vehicles_pos\n',vehicles_pos)
+        # print('vehicles_pos_3d\n',vehicles_pos_3d)
+        # vehicles_pos =vehicles_pos.T
+        # vehicles_pos_3d = vehicles_pos_3d.T
+        # dist_2d = np.sqrt(np.sum((self.bs_pos_3d[:, np.newaxis, :] - vehicles_pos_3d[:, :, 0:2])**2, axis=2))
+        # dist_2d = np.sqrt(np.sum((self.bs_pos_3d[:, :, 0:2] - vehicles_pos_3d[:, :, 0:2])**2, axis=2))
+        # dists = np.sqrt(np.sum((A[:, np.newaxis, :] - B[np.newaxis, :, :])**2, axis=-1))
+        dist_2d = np.sqrt(np.sum((self.bs_pos[:, np.newaxis, :] - vehicles_pos[np.newaxis, :, :])**2, axis=-1))
+        dist_3d = np.sqrt(np.sum((self.bs_pos_3d[:, np.newaxis, :] - vehicles_pos_3d[np.newaxis, :, :])**2, axis=-1))
+        dist_2d,dist_3d = dist_2d.T,dist_3d.T
+        # dist_2d = cdist(self.bs_pos, vehicles_pos).T
+        # dist_3d = cdist(self.bs_pos_3d, vehicles_pos_3d).T
+        
+        # dist_2d = np.sqrt(np.sum((self.bs_pos - vehicles_pos)**2, axis=2))
+        # dist_3d = np.sqrt(np.sum((self.bs_pos_3d - vehicles_pos_3d)**2, axis=2))
 
+        # dist_2d = np.sqrt(np.sum((self.bs_pos[:, np.newaxis, :] - vehicles_pos_all)**2, axis=2))
+        # dist_3d = np.sqrt(np.sum((self.bs_pos_3d[:, np.newaxis, :] - vehicles_pos_3d_all)**2, axis=2))
+
+
+        # self.dist = np.sqrt(((vehicles_pos_3d[:, None, :] - self.bs_pos_3d)**2).sum(axis=-1))
+        self.dist = dist_3d
         # rf_dr, _ = rf_sinr_matrix(self.dist[:, :self.rf_bs_count])
         # thz_dr, _ = thz_sinr_matrix(self.dist[:, self.rf_bs_count:])
+        # print('self.bs_pos\n',self.bs_pos)
 
         '''
         C2A Aeriation update
@@ -438,9 +490,15 @@ class BSRoad(Road):
         a2c_link(dist_2d[:, :self.rf_bs_count],self.dist[:, :self.rf_bs_count],self.bs_pos_3d,vehicles_pos_3d)
         '''
         SNR_3d = a2c_link(dist_2d[:, :self.rf_bs_count],self.dist[:, :self.rf_bs_count],vehicles_pos_3d)
-        print('sir_3d \n' ,SNR_3d)
-        self.total_dr_3d = SNR_3d
-        self.total_dr = SNR_3d
+        # SNR_3d = a2c_link(dist_2d,self.dist,vehicles_pos_3d)
+        # print('sir_3d \n' ,SNR_3d)
+
+        # print('conn \n' ,self.bs_conn)
+        # print('snr shape \n' ,SNR_3d.shape)
+        # print('self.bs_conn.shape\n',self.bs_conn.shape)
+        # self.bs_conn = np.reshape(self.bs_conn, (-1, 1))
+        self.total_dr_3d = SNR_3d / (self.bs_conn + 1e-8)
+        self.total_dr = SNR_3d / (self.bs_conn + 1e-8)
         # self.total_dr = np.c_[rf_dr, thz_dr]
     
     def get_distance(self, vid):
@@ -458,7 +516,7 @@ class BSRoad(Road):
         return self.total_dr
     
     def get_performance_table(self):
-        total_dr_with_threshold = self.total_dr / (self.bs_conn + 1e-8)
+        total_dr_with_threshold = self.total_dr #/ (self.bs_conn + 1e-8)
         return total_dr_with_threshold
     
     def new_connect(self, old, new):

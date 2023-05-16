@@ -6,6 +6,7 @@ from scipy.linalg import fractional_matrix_power
 from scipy import linalg
 import numpy.matlib
 import random
+import warnings
 
 pi = math.pi
 
@@ -241,7 +242,7 @@ In summary, the a2c_link function calculates the SNR for each link between a veh
  ## ===================== Aeriation Parameters ========================================
 eta_LoS = 1
 eta_NLoS = 20
-f_c = 2e9 # Carrier Frequency is 2GHZ 850MHz 
+f_c = 2.1e9 # Carrier Frequency is 2GHZ 850MHz 
 
 
 def Loss_LoS(dist_2d,i,k):
@@ -279,9 +280,9 @@ def a2c_link(dist_2d,dist_3d,vehicles_pos_3d):
     A = eta_LoS - eta_NLoS
     B = 20 * np.log( (4 * pi * f_c)/ (3e8 ) ) + eta_NLoS 
     P_Noise = -95.9
-    PT = 40
+    PT_aeriation = 40
 
-    SNR = np.zeros((NU,NRF))
+    P_matrix = np.zeros((NU,NRF))
     for i, row in enumerate(dist_2d):
         for k, dist_ik in enumerate(row):
             r_ik = dist_3d[i,k]
@@ -289,11 +290,43 @@ def a2c_link(dist_2d,dist_3d,vehicles_pos_3d):
             angleik = theta_ik(dist_3d=dist_3d,vehicles_pos_3d=vehicles_pos_3d,i = i,k = k)
             loss_ik = A/(1 + a * np.exp(-b *(angleik) - a)) + \
                     20 * np.log(r_ik/math.cos(angleik)) + B
-            SNR[i,k] = PT - loss_ik - P_Noise
+            P_matrix[i,k] = PT_aeriation - loss_ik - P_Noise
     
-    SIR = SNR
-    # print(SIR)
-    return SIR
+    # SIR = P_matrix
+    # return SIR
+
+    # SRF = SRF ** (-1 * alpha) # [bs, v]
+
+    # convert dBm to watt
+    # print('vehicles_pos_3d \n',vehicles_pos_3d)
+    # print('dist_2d \n',dist_2d)
+    # print('dist_3d \n',dist_3d)
+    # print('Receiver Power  matrix dBm\n',P_matrix)
+    # P_matrix = np.power(10, (P_matrix-30)/10)
+
+    # interf = P_matrix.sum(axis=0) - P_matrix # [bs, v]
+    interf = P_matrix.sum(axis=0) # - P_matrix # [bs, v]
+    SIR = P_matrix / interf
+    # print('SIR\n',SIR)
+    # NP=1e-10 #(10) ** (-10)
+    # print('SIR matrix dBm\n',SIR)
+
+    # # set a maximum SIR value
+    MAX_SIR = 1e10
+
+    # # suppress the RuntimeWarning and set a maximum SIR value
+    # with warnings.catch_warnings():
+    #     warnings.filterwarnings("ignore", category=RuntimeWarning)
+    #     SIR = np.power(10, np.clip((SIR - 30) / 10, -50, np.log10(MAX_SIR))) 
+    # SIR = np.clip(SIR, 0, 1)  
+    SIR = np.power(10, (SIR-30)/10)
+    SIR = np.clip(SIR, 0, 0.5)
+    RPrAllu1 = Wr * np.log2( SIR + 1)#.T # [v, bs] NP + 
+    # print('interf in dBm\n',interf)
+    # print('SIR matrix watts\n',SIR)
+   
+    # print('dr matrix watts\n',RPrAllu1)
+    return RPrAllu1
 
 # def getInterf(sinr_matrix):
     
