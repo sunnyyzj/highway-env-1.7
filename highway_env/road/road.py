@@ -419,7 +419,7 @@ class BSRoad(Road):
         rf_dr, _ = rf_sinr_matrix(self.dist[:, :self.rf_bs_count])
         thz_dr, _ = thz_sinr_matrix(self.dist[:, self.rf_bs_count:])
         self.total_dr = np.c_[rf_dr, thz_dr]
-    
+            
     def get_distance(self, vid):
         # rf基站, thz基站
         return self.dist[vid, :self.rf_bs_count], self.dist[vid, self.rf_bs_count:]

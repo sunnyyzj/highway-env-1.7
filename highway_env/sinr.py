@@ -207,7 +207,7 @@ def thz_sinr_matrix(distance_matrix):
 
     interf = interfT.T
 
-    sinr_matrix = TPrAllu1
+    sinr_matrix = TPrAllu1.T
     interf_matrix = interf
 
     return sinr_matrix,interf_matrix

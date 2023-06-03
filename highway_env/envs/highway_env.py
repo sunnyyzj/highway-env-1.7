@@ -52,7 +52,7 @@ class HighwayEnv(AbstractEnv):
             "high_speed_reward": 0.4,  # The reward received when driving at full speed, linearly mapped to zero for
                                        # lower speeds according to config["reward_speed_range"].
             "lane_change_reward": 0,   # The reward received at each lane change action.
-            "reward_speed_range": [10, 20],#[20, 30]
+            "reward_speed_range": [20, 30],#[20, 30]
             "normalize_reward": True,
             "offroad_terminal": False
         })
@@ -173,7 +173,7 @@ class HighwayEnvBS(HighwayEnvFast):
             },
             "termination_agg_fn": 'any',
             'rf_bs_count': 5,  #20
-            'thz_bs_count': 20,  #100
+            'thz_bs_count': 10,  #100
             'rf_bs_max_connections': 10,  # 最大连接数量
             'thz_bs_max_connections': 5,
             "tele_reward": 4.5 / (10 ** 6.5),#3e-6,
