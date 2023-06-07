@@ -6,6 +6,8 @@ from scipy.linalg import fractional_matrix_power
 from scipy import linalg
 import numpy.matlib
 import random
+from scipy.special import erfinv
+from scipy import special as sp
 
 pi = math.pi
 
@@ -238,6 +240,50 @@ def thz_sinr_matrix(distance_matrix):
     interf_matrix = interf
 
     return sinr_matrix,interf_matrix
+
+def qfunc(x):
+    return 0.5-0.5*sp.erf(x/math.sqrt(2))
+
+def invQfunc(x):
+    return np.sqrt(2)*sp.erfinv(1-2*x)
+
+def QoS_v(rf_dr_matrix):
+    return 1 - 1/(1+np.square(rf_dr_matrix))
+
+
+def Qos_epsilon_c(thz_dr_matrix,W):
+    D_t = 0
+    # W = PR PT
+    b = 0
+    V = QoS_v(thz_dr_matrix)
+    epsilon_c = qfunc(np.sqrt(D_t*W/V) *(math.log(1 + thz_dr_matrix) - (math.log(2) * b )/(D_t * W) ))
+    return epsilon_c
+
+def rf_Qos(rf_dr_matrix):
+    # NU,NRF = rf_dr_matrix.shape # row is vehicle, column is rf bs
+    W = PR
+    V = QoS_v(rf_dr_matrix)
+    L_B = 0
+    epsilon_c = Qos_epsilon_c(rf_dr_matrix,PR)
+    R_ij = ( W / math.log(2)) * (math.log(1 + rf_dr_matrix) - math.sqrt(V / L_B) * invQfunc(epsilon_c) )
+
+    return R_ij 
+
+def thz_Qos(thz_dr_matrix):
+    # NU,NTHz = thz_dr_matrix.shape # row is vehicle, column is THz bs
+    W = PT
+    V = QoS_v(thz_dr_matrix)
+    L_B = 0
+    epsilon_c = Qos_epsilon_c(thz_dr_matrix,PT)
+    R_ij = ( W / math.log(2)) * (math.log(1 + thz_dr_matrix) - math.sqrt(V / L_B) * invQfunc(epsilon_c) )
+
+    return R_ij 
+
+# def calculate_throughput(Tij, LB, epsilon_c, W):
+#     V = 1 - 1 / ((1 + Tij) ** 2)
+#     f_Q_inv = math.sqrt(2) * erfinv(1 - 2 * epsilon_c)
+#     R = (W / math.log(2)) * (math.log(1 + Tij) - math.sqrt(V / LB) * f_Q_inv)
+#     return R
 
 def sinr_with_threshold(sinr_matrix, bs_assignment):
     ''' 
