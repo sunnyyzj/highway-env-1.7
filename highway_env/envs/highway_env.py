@@ -142,7 +142,7 @@ class HighwayEnvFast(HighwayEnv):
         cfg.update({
             "simulation_frequency": 5,
             "lanes_count": 3,
-            "vehicles_count": 20, #20
+            "vehicles_count": 20, #20 20
             "duration": 30,  # [s]
             "ego_spacing": 1.5,
         })
