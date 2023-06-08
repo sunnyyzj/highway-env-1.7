@@ -175,12 +175,13 @@ def rf_sinr_matrix(distance_matrix):
     NP=10e-10 #(10) ** (-10)
     RPrAllu1 = Wr * np.log2(SRF / (NP + interf) + 1).T # [v, bs]
     interf = interf.T # [v, bs]
-
-    sinr_matrix = RPrAllu1
+    SINR = SRF / (NP + interf)
+    SNR = SRF / (NP)
+    dr_matrix = RPrAllu1
     interf_matrix = interf
     # print(df)
 
-    return sinr_matrix,interf_matrix
+    return dr_matrix,interf_matrix,SINR,SNR
 
 
 def thz_sinr_matrix(distance_matrix):
@@ -236,13 +237,16 @@ def thz_sinr_matrix(distance_matrix):
 
     interf = interfT.T
 
-    sinr_matrix = TPrAllu1
+    dr_matrix = TPrAllu1
     interf_matrix = interf
 
-    return sinr_matrix,interf_matrix
+    SINR = STHz / (NP + interf)
+    SNR = STHz / (NP)
+
+    return dr_matrix,interf_matrix,SINR,SNR
 
 def qfunc(x):
-    return 0.5-0.5*sp.erf(x/math.sqrt(2))
+    return 0.5-0.5*sp.erf(x/np.sqrt(2))
 
 def invQfunc(x):
     return np.sqrt(2)*sp.erfinv(1-2*x)
@@ -250,34 +254,36 @@ def invQfunc(x):
 def QoS_v(rf_dr_matrix):
     return 1 - 1/(1+np.square(rf_dr_matrix))
 
-
-def Qos_epsilon_c(thz_dr_matrix,W):
-    D_t = 0
+L_B = 1000
+def Qos_epsilon_c(SINR_matrix,W):
+    D_t = L_B/W
     # W = PR PT
-    b = 0
-    V = QoS_v(thz_dr_matrix)
-    epsilon_c = qfunc(np.sqrt(D_t*W/V) *(math.log(1 + thz_dr_matrix) - (math.log(2) * b )/(D_t * W) ))
+    b = D_t * SINR_matrix
+    V = QoS_v(SINR_matrix)
+    epsilon_c = qfunc(np.sqrt(D_t*W/V) *(np.log(1 + SINR_matrix) - (np.log(2) * b )/(D_t * W) ))
     return epsilon_c
 
-def rf_Qos(rf_dr_matrix):
+def rf_Qos_matrix(SINR_matrix):
     # NU,NRF = rf_dr_matrix.shape # row is vehicle, column is rf bs
-    W = PR
-    V = QoS_v(rf_dr_matrix)
-    L_B = 0
-    epsilon_c = Qos_epsilon_c(rf_dr_matrix,PR)
-    R_ij = ( W / math.log(2)) * (math.log(1 + rf_dr_matrix) - math.sqrt(V / L_B) * invQfunc(epsilon_c) )
+    W = Wr
+    V = QoS_v(SINR_matrix)
+    epsilon_c = Qos_epsilon_c(SINR_matrix,Wr)
+    R = ( W / np.log(2)) * (np.log(1 + SINR_matrix) - np.sqrt(V / L_B) * invQfunc(epsilon_c) )
 
-    return R_ij 
+    return R 
 
-def thz_Qos(thz_dr_matrix):
+def thz_Qos_matrix(SINR_matrix):
     # NU,NTHz = thz_dr_matrix.shape # row is vehicle, column is THz bs
-    W = PT
-    V = QoS_v(thz_dr_matrix)
-    L_B = 0
-    epsilon_c = Qos_epsilon_c(thz_dr_matrix,PT)
-    R_ij = ( W / math.log(2)) * (math.log(1 + thz_dr_matrix) - math.sqrt(V / L_B) * invQfunc(epsilon_c) )
+    W = Wt
+    V = QoS_v(SINR_matrix)
+    epsilon_c = Qos_epsilon_c(SINR_matrix,Wt)
+    R = ( W / np.log(2)) * (np.log(1 + SINR_matrix) - np.sqrt(V / L_B) * invQfunc(epsilon_c) )
 
-    return R_ij 
+    return R 
+
+# def main():
+#     dr_matrix,interf_matrix,SINR,SNR  = thz_sinr_matrix(distance_matrix)
+#     thz_QoS = thz_Qos(SINR)
 
 # def calculate_throughput(Tij, LB, epsilon_c, W):
 #     V = 1 - 1 / ((1 + Tij) ** 2)

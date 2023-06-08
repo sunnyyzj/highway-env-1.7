@@ -420,8 +420,8 @@ class BSRoad(Road):
         # vehicles位置更新后, 更新total_dr
         vehicles_pos = np.array([v.position for v in self.vehicles])
         self.dist = np.sqrt(((vehicles_pos[:, None, :] - self.bs_pos)**2).sum(axis=-1))
-        rf_dr, _ = rf_sinr_matrix(self.dist[:, :self.rf_bs_count])
-        thz_dr, _ = thz_sinr_matrix(self.dist[:, self.rf_bs_count:])
+        rf_dr, _ = rf_Qos_matrix(self.dist[:, :self.rf_bs_count])
+        thz_dr, _ = thz_Qos_matrix(self.dist[:, self.rf_bs_count:])
         self.total_dr = np.c_[rf_dr, thz_dr]
     
     def get_distance(self, vid):
