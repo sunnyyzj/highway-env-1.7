@@ -413,16 +413,56 @@ class BSRoad(Road):
     
     def _set_bs_position(self, lane, start, length):
         cnt = self.rf_bs_count + self.thz_bs_count
-        self.bs_pos[:, 0] = np.random.random(cnt) * length + start
-        self.bs_pos[:, 1] = np.random.randint(0, 2, cnt) * StraightLane.DEFAULT_WIDTH * lane
+        # self.bs_pos[:, 0] = np.random.random(cnt) * length + start
+        # self.bs_pos[:, 1] = np.random.randint(0, 2, cnt) * StraightLane.DEFAULT_WIDTH * lane
+        '''
+        disable the BSs aside the road, random distribute BSs around 1000m * 1000m field
+        '''
+        self.bs_pos[:, 0] = np.random.random(cnt)*1000
+        # self.bs_pos[:, 1] = np.random.random(cnt)*1000
+        # self.bs_pos[:, 0] = np.random.randint(0,1000,cnt)
+        # self.bs_pos[:, 1] = np.random.randint(-500,500,cnt)
+        lower_bound = -500
+        upper_bound = 500
+        excluded_range = range(-8, 9)
+
+        # Generate random numbers, excluding the range [-8, 8]
+        random_numbers_exclude_onroad = np.random.choice(
+            [x for x in range(lower_bound, upper_bound + 1) if x not in excluded_range],
+            size=cnt,
+            replace=True
+        )
+        self.bs_pos[:, 1] = random_numbers_exclude_onroad
+        # self.bs_pos_3d = np.hstack((self.bs_pos, np.zeros((cnt, 1)))) #assume BSs have no height
     
     def update(self):
         # vehicles位置更新后, 更新total_dr
         vehicles_pos = np.array([v.position for v in self.vehicles])
         self.dist = np.sqrt(((vehicles_pos[:, None, :] - self.bs_pos)**2).sum(axis=-1))
-        rf_dr, _ = rf_Qos_matrix(self.dist[:, :self.rf_bs_count])
-        thz_dr, _ = thz_Qos_matrix(self.dist[:, self.rf_bs_count:])
-        self.total_dr = np.c_[rf_dr, thz_dr]
+        # rf_dr, _ = rf_Qos_matrix(self.dist[:, :self.rf_bs_count])
+        # thz_dr, _ = thz_Qos_matrix(self.dist[:, self.rf_bs_count:])
+        dr_matrix_rf,interf_matrix,SINR_rf,SNR_rf = rf_sinr_matrix(self.dist[:, :self.rf_bs_count])
+        dr_matrix_thz,interf_matrix,SINR_thz,SNR_thz = thz_sinr_matrix(self.dist[:, self.rf_bs_count:])
+        #with QoS
+        # rf_dr = rf_Qos_matrix(SINR_rf)
+        # thz_dr = thz_Qos_matrix(SINR_thz)
+
+        rf_dr = dr_matrix_rf
+        thz_dr = dr_matrix_thz
+        # print('rf_dr shape',rf_dr)
+        # print('thz_dr shape',thz_dr)
+        # print('rf_dr_shape',rf_dr.shape)
+        # print('thz_dr_shape',thz_dr.shape)
+        # print('\nrf_dr',rf_dr)
+        # print('\nthz_dr',rf_dr)
+        # Verify the number of columns is the same
+        assert rf_dr.shape[1] == thz_dr.shape[1], "The number of columns must be the same for concatenation."
+        # self.total_dr = np.c_[rf_dr, thz_dr]
+        concatenate_dr = np.concatenate((rf_dr, thz_dr), axis=0)
+        self.total_dr = concatenate_dr.T
+        # print( self.total_dr.shape)
+        # print( self.total_dr)
+        
     
     def get_distance(self, vid):
         # rf基站, thz基站

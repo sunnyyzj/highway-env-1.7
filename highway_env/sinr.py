@@ -81,76 +81,76 @@ def sum_of_each_row(matrix):
     # return arr
     return matrix.sum(axis=0)
 
-def rf_sinr_matrix__raw(distance_matrix,vehicles,bss):
-    """
-    Convert distance matrix to sinr matrix
+# def rf_sinr_matrix__raw(distance_matrix,vehicles,bss):
+#     """
+#     Convert distance matrix to sinr matrix
 
-    """
-    NU,NRF = distance_matrix.shape # row is vehicle, column is rf bs
-    # print(distance_matrix)
-    # print("distance_matrix.shape",NU,NRF )
-    # NU = len(distance_matrix) 
-    # NRF = len(distance_matrix[0])
+#     """
+#     NU,NRF = distance_matrix.shape # row is vehicle, column is rf bs
+#     # print(distance_matrix)
+#     # print("distance_matrix.shape",NU,NRF )
+#     # NU = len(distance_matrix) 
+#     # NRF = len(distance_matrix[0])
 
-    d_matrix = np.array(distance_matrix)    # [v, bs]
+#     d_matrix = np.array(distance_matrix)    # [v, bs]
 
-    fadeRand = generate_exponential_matrix(1,NRF,NU)    # [bs, v]
-    # print("fade rand shape",np.shape(fadeRand))
+#     fadeRand = generate_exponential_matrix(1,NRF,NU)    # [bs, v]
+#     # print("fade rand shape",np.shape(fadeRand))
 
-    #signal matrix for RF
-    # SRF = gammaI*fadeRand*PR*d_matrix
-    # SRF = np.dot(gammaI,fadeRand)
-    SRF = np.multiply(gammaI,fadeRand)
-    # print("srf 1",np.shape(SRF))
+#     #signal matrix for RF
+#     # SRF = gammaI*fadeRand*PR*d_matrix
+#     # SRF = np.dot(gammaI,fadeRand)
+#     SRF = np.multiply(gammaI,fadeRand)
+#     # print("srf 1",np.shape(SRF))
 
-    # SRF = np.dot(SRF,PR)
-    SRF = np.multiply(SRF,PR)
-    # print("srf 2",np.shape(SRF))
+#     # SRF = np.dot(SRF,PR)
+#     SRF = np.multiply(SRF,PR)
+#     # print("srf 2",np.shape(SRF))
 
-    # SRF = np.dot(SRF,d_matrix)
-    SRF = np.multiply(SRF,np.transpose(d_matrix))
-    # print("srf 3",np.shape(SRF))
-    '''
-     SRF = np.linalg.matrix_power(SRF,-1*alpha)
-    '''
-    # SRF = fractional_matrix_power(SRF,-1*alpha)
-    SRF = SRF ** (-1 * alpha) #fractional_matrix_power(distance_matrix_thz,2)
-    # print("srf 4",np.shape(SRF))
+#     # SRF = np.dot(SRF,d_matrix)
+#     SRF = np.multiply(SRF,np.transpose(d_matrix))
+#     # print("srf 3",np.shape(SRF))
+#     '''
+#      SRF = np.linalg.matrix_power(SRF,-1*alpha)
+#     '''
+#     # SRF = fractional_matrix_power(SRF,-1*alpha)
+#     SRF = SRF ** (-1 * alpha) #fractional_matrix_power(distance_matrix_thz,2)
+#     # print("srf 4",np.shape(SRF))
     
-    # interference : interf=repmat(sum(SRF,1),NRF,1)-SRF; %interference for RF
-    sum_srf = sum_of_each_row(SRF)  # [v]
-    # print("sum_srf",np.shape(sum_srf))
+#     # interference : interf=repmat(sum(SRF,1),NRF,1)-SRF; %interference for RF
+#     sum_srf = sum_of_each_row(SRF)  # [v]
+#     # print("sum_srf",np.shape(sum_srf))
 
-    # np.tile(sum_srf, (NRF, 1))
-    interf=np.matlib.repmat(sum_srf,NRF,1)
-    # print("interf",np.shape(interf))
+#     # np.tile(sum_srf, (NRF, 1))
+#     interf=np.matlib.repmat(sum_srf,NRF,1)
+#     # print("interf",np.shape(interf))
 
-    interf=np.subtract(interf, SRF)
+#     interf=np.subtract(interf, SRF)
     
-    # print("interf shape",np.shape(interf))
-    # print("interf",interf)
+#     # print("interf shape",np.shape(interf))
+#     # print("interf",interf)
 
-    #power from all base-stations to all users
-    NP=10e-10 #(10) ** (-10)
-    RPrAllu1 = Wr * np.log2(np.add(1,np.divide(SRF,np.add(NP, interf))))
-    # print(RPrAllu1)
-    RPrAllu1 = np.transpose(RPrAllu1)
-    interf=np.transpose(interf)
-    # print(RPrAllu1.shape)
+#     #power from all base-stations to all users
+#     NP=10e-10 #(10) ** (-10)
+#     RPrAllu1 = Wr * np.log2(np.add(1,np.divide(SRF,np.add(NP, interf))))
+#     # print(RPrAllu1)
+#     RPrAllu1 = np.transpose(RPrAllu1)
+#     interf=np.transpose(interf)
+#     # print(RPrAllu1.shape)
 
 
-    ## column row names should be recovered ### 
-    # print(distance_matrix) 
-    # print(d_matrix)
-    # print(RPrAllu1)
-    # print('vehicle list is ', vehicles,)
-    # print('bs_list is',bss)
+#     ## column row names should be recovered ### 
+#     # print(distance_matrix) 
+#     # print(d_matrix)
+#     # print(RPrAllu1)
+#     # print('vehicle list is ', vehicles,)
+#     # print('bs_list is',bss)
 
-    sinr_matrix = pd.DataFrame(RPrAllu1 , columns = bss, index = vehicles)
-    interf_matrix = pd.DataFrame(interf , columns = bss, index = vehicles)
-    # print(df)
+#     sinr_matrix = pd.DataFrame(RPrAllu1 , columns = bss, index = vehicles)
+#     interf_matrix = pd.DataFrame(interf , columns = bss, index = vehicles)
+#     # print(df)
 
-    return sinr_matrix,interf_matrix
+#     return sinr_matrix,interf_matrix
 
 
 def rf_sinr_matrix(distance_matrix):
@@ -159,27 +159,39 @@ def rf_sinr_matrix(distance_matrix):
 
     """
     NU,NRF = distance_matrix.shape # row is vehicle, column is rf bs
-
+    # print('NU,NRF\n',NU,NRF)
     d_matrix = np.array(distance_matrix)    # [v, bs]
-
+    # print('d_matrix\n',d_matrix)
     fadeRand = generate_exponential_matrix(1,NRF,NU)    # [bs, v]
+    # fadeRand = generate_exponential_matrix(1,NU,NRF)    # [bs, v]
 
+    # print('fadeRand\n',fadeRand)
     #signal matrix for RF
     # SRF = gammaI*fadeRand*PR*d_matrix
-    SRF = gammaI * PR * fadeRand * d_matrix.T
-
-    SRF = SRF ** (-1 * alpha) # [bs, v]
+    SRF = gammaI * PR * fadeRand * (d_matrix ** (-1 * alpha)).T
+    # print('gammaI\n',gammaI)
+    # SRF = SRF ** (-1 * alpha) # [bs, v]
 
     interf = SRF.sum(axis=0) - SRF # [bs, v]
+    # print('SRF\n',SRF)
+    # print('SRF.sum(axis=0)\n',SRF.sum(axis=0))
+    # SRF.sum(axis=0)
+    # print('interf\n',interf)
     
     NP=10e-10 #(10) ** (-10)
-    RPrAllu1 = Wr * np.log2(SRF / (NP + interf) + 1).T # [v, bs]
-    interf = interf.T # [v, bs]
+    RPrAllu1 = Wr * np.log2(SRF / (NP + interf) + 1) #.T # [v, bs]
+    # interf = interf.T # [v, bs]
     SINR = SRF / (NP + interf)
     SNR = SRF / (NP)
     dr_matrix = RPrAllu1
     interf_matrix = interf
-    # print(df)
+    # print('dr_matrix\n',dr_matrix)
+
+    # print(dr_matrix.shape)
+    # print(interf_matrix.shape)
+    # print(SINR.shape)
+    # print(SNR.shape)
+
 
     return dr_matrix,interf_matrix,SINR,SNR
 
@@ -220,8 +232,9 @@ def thz_sinr_matrix(distance_matrix):
     NU,NTHz = distance_matrix.shape # row is vehicle, column is rf bs
 
     d_matrix = np.array(distance_matrix)
-
+    # print('d_matrix\n',d_matrix)
     fadeRand1 = generate_exponential_matrix(1,NTHz,NU)
+    # print('fadeRand1\n',fadeRand1)
 
     d_matrix = d_matrix.T
 
@@ -232,16 +245,27 @@ def thz_sinr_matrix(distance_matrix):
     # RPrAllu1 = Wr * np.log2(1 + SRF / (NP + interf)).T
 
     STHz = gammaII * fadeRand1 * PT * np.exp(-kf * d_matrix) / (d_matrix**2) # signal matrix for THZ
-    interfT = np.tile(np.sum(STHz, axis=0), (NTHz, 1)) - STHz # interference matrix for THz
+    # print('STHz\n',STHz)
+    interfT = STHz.sum(axis=0) - STHz 
+    # interfT = np.tile(np.sum(STHz, axis=0), (NTHz, 1)) - STHz # interference matrix for THz
+    # print('interfT\n',interfT)
     TPrAllu1 = Wt * np.log2(1 + STHz / (NP + interfT))
 
-    interf = interfT.T
+    interf = interfT#.T
 
     dr_matrix = TPrAllu1
     interf_matrix = interf
 
     SINR = STHz / (NP + interf)
     SNR = STHz / (NP)
+    # print('TPrAllu1\n',TPrAllu1)
+    # print('TSINR\n',SINR)
+    # print('TSNR\n',SNR)
+
+    # print(dr_matrix.shape)
+    # print(interf_matrix.shape)
+    # print(SINR.shape)
+    # print(SNR.shape)
 
     return dr_matrix,interf_matrix,SINR,SNR
 
@@ -251,34 +275,43 @@ def qfunc(x):
 def invQfunc(x):
     return np.sqrt(2)*sp.erfinv(1-2*x)
 
-def QoS_v(rf_dr_matrix):
-    return 1 - 1/(1+np.square(rf_dr_matrix))
+def QoS_v(SINR_matrix):
+    return 1 - 1/(np.square(1+SINR_matrix))
 
-L_B = 1000
+L_B = 10
 def Qos_epsilon_c(SINR_matrix,W):
     D_t = L_B/W
     # W = PR PT
     b = D_t * SINR_matrix
     V = QoS_v(SINR_matrix)
-    epsilon_c = qfunc(np.sqrt(D_t*W/V) *(np.log(1 + SINR_matrix) - (np.log(2) * b )/(D_t * W) ))
+    # epsilon_c = qfunc(np.sqrt(D_t*W/V) *(np.log(1 + SINR_matrix) - (np.log(2) * b )/(D_t * W) ))
+    epsilon_c = qfunc(np.sqrt(L_B/V) *(np.log(1 + SINR_matrix) - (np.log(2) * b )/(L_B) ))
+    # epsilon_c.where(epsilon_c >= 0.8, 0.8, epsilon_c)
+    epsilon_c = np.where(epsilon_c >= 0.8, 0.8, epsilon_c)
     return epsilon_c
 
 def rf_Qos_matrix(SINR_matrix):
     # NU,NRF = rf_dr_matrix.shape # row is vehicle, column is rf bs
+    # print('sinr_rf\n',SINR_matrix)
     W = Wr
     V = QoS_v(SINR_matrix)
+    # print('V_rf\n',V)
     epsilon_c = Qos_epsilon_c(SINR_matrix,Wr)
+    # print('epsilon_c_rf\n',epsilon_c)
     R = ( W / np.log(2)) * (np.log(1 + SINR_matrix) - np.sqrt(V / L_B) * invQfunc(epsilon_c) )
-
+    # print('qos_dr\n',R)
     return R 
 
 def thz_Qos_matrix(SINR_matrix):
     # NU,NTHz = thz_dr_matrix.shape # row is vehicle, column is THz bs
+    # print('sinr_thz\n',SINR_matrix)
     W = Wt
     V = QoS_v(SINR_matrix)
+    # print('V_thz\n',V)
     epsilon_c = Qos_epsilon_c(SINR_matrix,Wt)
+    # print('epsilon_c_thz\n',epsilon_c)
     R = ( W / np.log(2)) * (np.log(1 + SINR_matrix) - np.sqrt(V / L_B) * invQfunc(epsilon_c) )
-
+    # print('qos_dr_thz\n',R)
     return R 
 
 # def main():
