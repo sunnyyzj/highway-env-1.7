@@ -419,20 +419,22 @@ class BSRoad(Road):
         disable the BSs aside the road, random distribute BSs around 1000m * 1000m field
         '''
         self.bs_pos[:, 0] = np.random.random(cnt)*1000
-        # self.bs_pos[:, 1] = np.random.random(cnt)*1000
-        # self.bs_pos[:, 0] = np.random.randint(0,1000,cnt)
-        # self.bs_pos[:, 1] = np.random.randint(-500,500,cnt)
-        lower_bound = -500
-        upper_bound = 500
-        excluded_range = range(-8, 9)
+        self.bs_pos[:, 1] = np.random.randint(0, 2, cnt) * StraightLane.DEFAULT_WIDTH * lane
+        # # self.bs_pos[:, 1] = np.random.random(cnt)*1000
+        # # self.bs_pos[:, 0] = np.random.randint(0,1000,cnt)
+        # # self.bs_pos[:, 1] = np.random.randint(-500,500,cnt)
+        # lower_bound = -500
+        # upper_bound = 500
+        # excluded_range = range(-8, 9)
 
-        # Generate random numbers, excluding the range [-8, 8]
-        random_numbers_exclude_onroad = np.random.choice(
-            [x for x in range(lower_bound, upper_bound + 1) if x not in excluded_range],
-            size=cnt,
-            replace=True
-        )
-        self.bs_pos[:, 1] = random_numbers_exclude_onroad
+        # # Generate random numbers, excluding the range [-8, 8]
+        # random_numbers_exclude_onroad = np.random.choice(
+        #     [x for x in range(lower_bound, upper_bound + 1) if x not in excluded_range],
+        #     size=cnt,
+        #     replace=True
+        # )
+        # self.bs_pos[:, 1] = random_numbers_exclude_onroad
+        
         # self.bs_pos_3d = np.hstack((self.bs_pos, np.zeros((cnt, 1)))) #assume BSs have no height
     
     def update(self):
@@ -444,11 +446,11 @@ class BSRoad(Road):
         dr_matrix_rf,interf_matrix,SINR_rf,SNR_rf = rf_sinr_matrix(self.dist[:, :self.rf_bs_count])
         dr_matrix_thz,interf_matrix,SINR_thz,SNR_thz = thz_sinr_matrix(self.dist[:, self.rf_bs_count:])
         #with QoS
-        # rf_dr = rf_Qos_matrix(SINR_rf)
-        # thz_dr = thz_Qos_matrix(SINR_thz)
+        rf_dr = rf_Qos_matrix(SINR_rf)
+        thz_dr = thz_Qos_matrix(SINR_thz)
 
-        rf_dr = dr_matrix_rf
-        thz_dr = dr_matrix_thz
+        # rf_dr = dr_matrix_rf
+        # thz_dr = dr_matrix_thz
         # print('rf_dr shape',rf_dr)
         # print('thz_dr shape',thz_dr)
         # print('rf_dr_shape',rf_dr.shape)
