@@ -278,7 +278,7 @@ def invQfunc(x):
 def QoS_v(SINR_matrix):
     return 1 - 1/(np.square(1+SINR_matrix))
 
-L_B = 50
+L_B = 1
 def Qos_epsilon_c(SINR_matrix,W):
     D_t = L_B/W
     # W = PR PT
