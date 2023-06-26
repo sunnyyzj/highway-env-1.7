@@ -2,7 +2,7 @@
 # Unfortunately it is still required py the pip editable mode `pip install -e`
 # See https://stackoverflow.com/a/60885212
 
-from setuptools import setup
+from setuptools import setup 
 
 if __name__ == "__main__":
     setup()
