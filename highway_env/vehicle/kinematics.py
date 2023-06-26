@@ -234,8 +234,5 @@ class Vehicle(RoadObject):
         return self.__str__()
 
     def _get_vehicle_id(self):
-        # test_str = Vehicle.__str__(self)
-        # m = re.search(r'\#(.*?)\:', test_str).group(1)
-        # m = "v" + m
         m = f'v{id(self) % 1000}'
         return m

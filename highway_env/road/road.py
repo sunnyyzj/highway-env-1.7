@@ -309,27 +309,18 @@ class Road(object):
         self.np_random = np_random if np_random else np.random.RandomState()
         self.record_history = record_history
 
-    def close_objects_to(self, vehicle: 'kinematics.Vehicle', distance: float, count: Optional[int] = None,
-                         see_behind: bool = True, sort: bool = True, vehicles_only: bool = False) -> object:
+    def close_vehicles_to(self, vehicle: 'kinematics.Vehicle', distance: float, count: Optional[int] = None,
+                          see_behind: bool = True, sort: bool = True) -> object:
         vehicles = [v for v in self.vehicles
                     if np.linalg.norm(v.position - vehicle.position) < distance
                     and v is not vehicle
                     and (see_behind or -2 * vehicle.LENGTH < vehicle.lane_distance_to(v))]
-        obstacles = [o for o in self.objects
-                     if np.linalg.norm(o.position - vehicle.position) < distance
-                     and -2 * vehicle.LENGTH < vehicle.lane_distance_to(o)]
-
-        objects_ = vehicles if vehicles_only else vehicles + obstacles
 
         if sort:
-            objects_ = sorted(objects_, key=lambda o: abs(vehicle.lane_distance_to(o)))
+            vehicles = sorted(vehicles, key=lambda v: abs(vehicle.lane_distance_to(v)))
         if count:
-            objects_ = objects_[:count]
-        return objects_
-
-    def close_vehicles_to(self, vehicle: 'kinematics.Vehicle', distance: float, count: Optional[int] = None,
-                          see_behind: bool = True, sort: bool = True) -> object:
-        return self.close_objects_to(vehicle, distance, count, see_behind, sort, vehicles_only=True)
+            vehicles = vehicles[:count]
+        return vehicles
 
     def act(self) -> None:
         """Decide the actions of each entity on the road."""
@@ -422,16 +413,15 @@ class BSRoad(Road):
     
     def _set_bs_position(self, lane, start, length):
         cnt = self.rf_bs_count + self.thz_bs_count
-        # self.bs_pos[:, 0] = np.random.random(cnt) * length + start
-        # self.bs_pos[:, 1] = np.random.randint(0, 2, cnt) * StraightLane.DEFAULT_WIDTH * lane
+        #self.bs_pos[:, 0] = np.random.random(cnt) * length + start
+        self.bs_pos[:, 1] = np.random.randint(0, 2, cnt) * StraightLane.DEFAULT_WIDTH * lane
         '''
         disable the BSs aside the road, random distribute BSs around 1000m * 1000m field
         '''
         self.bs_pos[:, 0] = np.random.random(cnt)*1000
-        self.bs_pos[:, 1] = np.random.randint(0, 2, cnt) * StraightLane.DEFAULT_WIDTH * lane
-        # # self.bs_pos[:, 1] = np.random.random(cnt)*1000
-        # # self.bs_pos[:, 0] = np.random.randint(0,1000,cnt)
-        # # self.bs_pos[:, 1] = np.random.randint(-500,500,cnt)
+        # self.bs_pos[:, 1] = np.random.random(cnt)*1000
+        # self.bs_pos[:, 0] = np.random.randint(0,1000,cnt)
+        # self.bs_pos[:, 1] = np.random.randint(-500,500,cnt)
         # lower_bound = -500
         # upper_bound = 500
         # excluded_range = range(-8, 9)
@@ -443,23 +433,23 @@ class BSRoad(Road):
         #     replace=True
         # )
         # self.bs_pos[:, 1] = random_numbers_exclude_onroad
-        
         # self.bs_pos_3d = np.hstack((self.bs_pos, np.zeros((cnt, 1)))) #assume BSs have no height
     
     def update(self):
         # vehicles位置更新后, 更新total_dr
         vehicles_pos = np.array([v.position for v in self.vehicles])
         self.dist = np.sqrt(((vehicles_pos[:, None, :] - self.bs_pos)**2).sum(axis=-1))
+        print("dist_matrix",self.dist)
         # rf_dr, _ = rf_Qos_matrix(self.dist[:, :self.rf_bs_count])
         # thz_dr, _ = thz_Qos_matrix(self.dist[:, self.rf_bs_count:])
         dr_matrix_rf,interf_matrix,SINR_rf,SNR_rf = rf_sinr_matrix(self.dist[:, :self.rf_bs_count])
         dr_matrix_thz,interf_matrix,SINR_thz,SNR_thz = thz_sinr_matrix(self.dist[:, self.rf_bs_count:])
         #with QoS
-        rf_dr = rf_Qos_matrix(SINR_rf)
-        thz_dr = thz_Qos_matrix(SINR_thz)
+        # rf_dr = rf_Qos_matrix(SINR_rf)
+        # thz_dr = thz_Qos_matrix(SINR_thz)
 
-        # rf_dr = dr_matrix_rf
-        # thz_dr = dr_matrix_thz
+        rf_dr = dr_matrix_rf
+        thz_dr = dr_matrix_thz
         # print('rf_dr shape',rf_dr)
         # print('thz_dr shape',thz_dr)
         # print('rf_dr_shape',rf_dr.shape)

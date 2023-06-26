@@ -151,13 +151,11 @@ class KinematicObservation(ObservationType):
                  clip: bool = True,
                  see_behind: bool = False,
                  observe_intentions: bool = False,
-                 include_obstacles: bool = True,
                  **kwargs: dict) -> None:
         """
         :param env: The environment to observe
         :param features: Names of features used in the observation
         :param vehicles_count: Number of observed vehicles
-        :param features_range: a dict mapping a feature name to [min, max] values
         :param absolute: Use absolute coordinates
         :param order: Order of observed vehicles. Values: sorted, shuffled
         :param normalize: Should the observation be normalized
@@ -175,7 +173,6 @@ class KinematicObservation(ObservationType):
         self.clip = clip
         self.see_behind = see_behind
         self.observe_intentions = observe_intentions
-        self.include_obstacles = include_obstacles
 
     def space(self) -> spaces.Space:
         return spaces.Box(shape=(self.vehicles_count, len(self.features)), low=-np.inf, high=np.inf, dtype=np.float32)
@@ -251,7 +248,7 @@ class KinematicTeleObservation(ObservationType):
                  features: List[str] = None,
                  vehicles_count: int = 5,
                  features_range: Dict[str, List[float]] = None,
-                 absolute: bool = False,
+                 absolute: bool = True,
                  order: str = "sorted",
                  normalize: bool = True,
                  clip: bool = True,
@@ -281,6 +278,26 @@ class KinematicTeleObservation(ObservationType):
         self.observe_intentions = observe_intentions
     def space(self) -> spaces.Space:
         return spaces.Box(shape=(self.vehicles_count, len(self.features)), low=-np.inf, high=np.inf, dtype=np.float32)
+    
+    def discretize_obs_cut(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Discretize the observation values into discrete bins.
+        :param Dataframe df: observation data
+        """
+        # Define the number of bins for each feature
+        num_bins = {
+           "x": 5,
+           "y": 5,
+           "vx": 5,
+           "vy": 5
+        }
+
+        for feature, num_bin in num_bins.items():
+            if feature in df:
+                df[feature] = pd.cut(df[feature], bins=num_bin, labels=False, duplicates="drop")
+
+        return df
+    
     def normalize_obs(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Normalize the observation values.
@@ -295,45 +312,104 @@ class KinematicTeleObservation(ObservationType):
                 "vx": [-2*Vehicle.MAX_SPEED, 2*Vehicle.MAX_SPEED],
                 "vy": [-2*Vehicle.MAX_SPEED, 2*Vehicle.MAX_SPEED]
             }
+        
         for feature, f_range in self.features_range.items():
             if feature in df:
                 df[feature] = utils.lmap(df[feature], [f_range[0], f_range[1]], [-1, 1])
                 if self.clip:
                     df[feature] = np.clip(df[feature], -1, 1)
         return df
+    
+    
+    def discretize_obs(self, df: pd.DataFrame) -> pd.DataFrame:
 
+        """
+
+        Discretize the observation values into quartiles.
+
+        :param Dataframe df: observation data
+
+        """
+        if not self.features_range:
+            side_lanes = self.env.road.network.all_side_lanes(self.observer_vehicle.lane_index)
+            self.features_range = {
+                "x": [-5.0 * Vehicle.MAX_SPEED, 5.0 * Vehicle.MAX_SPEED],
+                "y": [-AbstractLane.DEFAULT_WIDTH * len(side_lanes), AbstractLane.DEFAULT_WIDTH * len(side_lanes)],
+                "vx": [-2*Vehicle.MAX_SPEED, 2*Vehicle.MAX_SPEED],
+                "vy": [-2*Vehicle.MAX_SPEED, 2*Vehicle.MAX_SPEED]
+            }
+
+        for feature, f_range in self.features_range.items():
+            df['x'] = pd.qcut(df['x'], q=5, labels=[0,1,2,3,4], duplicates = 'drop')
+            df['y'] = pd.qcut(df['y'], q=3, labels=[0,1], duplicates = 'drop')
+
+            # if feature in df:
+            #     #unique_edges = np.unique(f_range)
+            #     #bins = pd.qcut(df[feature], q=4, duplicates="drop").cat.categories
+            #     df[feature] = pd.qcut(df[feature], q=5, labels=[-1.0, -0.5, 0, 0.5], duplicates = 'drop')
+
+        return df
+
+    def discretize(self, df: pd.DataFrame) -> pd.DataFrame:
+        resolu_x = 10
+        resolu_vx = 5
+        df['x'] = df['x']/resolu_x
+        #df['y'] = df['y']/resolu
+        df['vx'] = df['vx']/resolu_vx
+        #df['vy'] = df['vy']/resolu
+        df = df.astype(int)
+        return df
+    
     def observe(self) -> np.ndarray:
         if not self.env.road:
             return np.zeros(self.space().shape)
 
         # Add ego-vehicle
-        df = pd.DataFrame.from_records([self.observer_vehicle.to_dict()])
+        df = pd.DataFrame.from_records([self.observer_vehicle.to_dict()])[self.features]
         # Add nearby traffic
-        close_vehicles = self.env.road.close_objects_to(self.observer_vehicle,
-                                                        self.env.PERCEPTION_DISTANCE,
-                                                        count=self.vehicles_count - 1,
-                                                        see_behind=self.see_behind,
-                                                        sort=self.order == "sorted",
-                                                        vehicles_only=not self.include_obstacles)
+        close_vehicles = self.env.road.close_vehicles_to(self.observer_vehicle,
+                                                         self.env.PERCEPTION_DISTANCE,
+                                                         count=self.vehicles_count - 1,
+                                                         see_behind=self.see_behind,
+                                                         sort=self.order == "sorted")
         if close_vehicles:
             origin = self.observer_vehicle if not self.absolute else None
-            vehicles_df = pd.DataFrame.from_records(
+            df = pd.concat([df, pd.DataFrame.from_records(
                 [v.to_dict(origin, observe_intentions=self.observe_intentions)
-                 for v in close_vehicles[-self.vehicles_count + 1:]])
-            df = pd.concat([df, vehicles_df], ignore_index=True)
-
-        df = df[self.features]
-
+                 for v in close_vehicles[-self.vehicles_count + 1:]])[self.features]],
+                           ignore_index=True)
         # Normalize and clip
+        # print("df before discretize:\n")
+        # print(df)
         if self.normalize:
-            df = self.normalize_obs(df)
+            # resolu = 3
+            # x_discrete = df['x']/resolu
+            # print(x_discrete)
+            # df['y_discrete'] = df['y']/resolu
+            # df['vx_discrete'] = df['vx']/resolu
+            # df['vy_discrete'] = df['vy']/resolu
+            # df['x_discrete'] = x_discrete
+            # df = df.astype(int)
+            # print("df inside self.normalize:\n")
+            # print(df)
+            df = self.discretize(df)
+            
+        # if not self.normalize:
+        #     df = self.discretize_obs(df)
+
         # Fill missing rows
         if df.shape[0] < self.vehicles_count:
             rows = np.zeros((self.vehicles_count - df.shape[0], len(self.features)))
             df = pd.concat([df, pd.DataFrame(data=rows, columns=self.features)], ignore_index=True)
         # Reorder
-        df = df[self.features]
+        #df = df[self.features]
         obs = df.values.copy()
+        # print("Value of df after discretize:\n")
+        # print(df)
+        # df = self.discretize(df)
+        # print("After dicretize\n")
+        # print(df)
+        # print("gone\n")
         if self.order == "shuffled":
             self.env.np_random.shuffle(obs[1:])
         # Flatten
@@ -701,12 +777,10 @@ class LidarObservation(ObservationType):
             corners = utils.rect_corners(obstacle.position, obstacle.LENGTH, obstacle.WIDTH, obstacle.heading)
             angles = [self.position_to_angle(corner, origin) for corner in corners]
             min_angle, max_angle = min(angles), max(angles)
-            if min_angle < -np.pi/2 < np.pi/2 < max_angle:  # Object's corners are wrapping around +pi
-                min_angle, max_angle = max_angle, min_angle + 2*np.pi
             start, end = self.angle_to_index(min_angle), self.angle_to_index(max_angle)
             if start < end:
                 indexes = np.arange(start, end+1)
-            else:  # Object's corners are wrapping around 0
+            else:
                 indexes = np.hstack([np.arange(start, self.cells), np.arange(0, end + 1)])
 
             # Actual distance computation for these sections
