@@ -142,7 +142,7 @@ class HighwayEnvFast(HighwayEnv):
         cfg.update({
             "simulation_frequency": 5,
             "lanes_count": 3,
-            "vehicles_count": 20,
+            "vehicles_count": 2,
             "duration": 30,  # [s]
             "ego_spacing": 1.5,
         })
@@ -177,7 +177,7 @@ class HighwayEnvBS(HighwayEnvFast):
             'rf_bs_max_connections': 10,  # 最大连接数量
             'thz_bs_max_connections': 5,
             "tele_reward": 4.5 / (10 ** 6.5),#3e-6,
-            "tele_reward_threshold": 4.5 * (10 ** 8),#3e-6, 4.5 * (10 ** 6.5)
+            "tele_reward_threshold": 4.5 * (10 ** 8),#3e-6,
             # "dr_reward": 0.2,
             "ho_reward": -5,
             "normalize_reward": True,
@@ -267,30 +267,7 @@ class HighwayEnvBS(HighwayEnvFast):
                 self.road.vehicles.append(vehicle)
                 # self.shared_state.vehicles.append(vehicle)  # shared state append
 
-    # No longer used
-    def _create_assignment_rf_matrix(self):
-        '''
-        distance matrice between AVs and RF BSs.
-        '''
-        bss = self.shared_state.rf_bss
-        vehicles = self.shared_state.vehicles
-        # 用一个numpy表示就行了, 顺序是不会乱的
-        return np.zeros((len(vehicles), len(bss)))
-
-
-    # No longer used
-    def _create_assignment_thz_matrix(self):
-        '''
-        distance matrice between AVs and RF BSs.
-        '''
-        bss = self.shared_state.thz_bss
-        vehicles = self.shared_state.vehicles
-        return np.zeros((len(vehicles), len(bss)))
-
-
-    # not used
-    def _get_bs_assignment_table(self) -> np.ndarray:
-        return self.shared_state.bs_assignment_table
+    
 
     def _info(self, obs: np.ndarray, action: int) -> dict:
         info = super()._info(obs, action)
@@ -342,12 +319,6 @@ class HighwayEnvBS(HighwayEnvFast):
     def _rewards(self, action: int) -> Dict[Text, float]:
         """Multi-objective rewards, for cooperative agents."""
 
-        # agents_rewards = [self._agent_rewards(action, vehicle) for vehicle in self.controlled_vehicles]
-        # return {
-        #     name: sum(agent_rewards[name] for agent_rewards in agents_rewards) / len(agents_rewards)
-        #     for name in agents_rewards[0].keys()
-        # }
-
         agents_rewards = [self.get_seperate_reward(action, vehicle) for vehicle in self.controlled_vehicles]
         return {
             name: sum(agent_rewards[name] for agent_rewards in agents_rewards) / len(agents_rewards)
@@ -380,10 +351,7 @@ class HighwayEnvBS(HighwayEnvFast):
         result_rf = 0
         if vehicle.target_current_bs is not None:
             result_rf = self.road.get_performance_table()[vid, vehicle.target_current_bs]
-            # print('self step is ========================',self.steps,type(self.steps))
-            # print('ho',float(vehicle.target_ho))
-            # print('steps',steps)
-            # print('raw_dr',result_rf)
+            
             if self.steps > 2: # 3
                 result_rf *=  1 - (vehicle.target_ho/(self.steps))
             # print('ho_dr',result_rf)
@@ -397,15 +365,13 @@ class HighwayEnvBS(HighwayEnvFast):
         
         # reward_ho = vehicle.target_ho / vehicle.position[0]  # assume this is MyMDPVehicle
 
+
         return {
             "collision_reward": float(vehicle.crashed),
             "right_lane_reward": lane / max(len(neighbours) - 1, 1),
             "high_speed_reward": np.clip(scaled_speed, 0, 1),
             "on_road_reward": float(vehicle.on_road),
             "tele_reward": float(result_rf) # / 10e7
-            # "ho_reward": float(reward_ho) #* 10
-            # "thz_reward": float(max_rate_thz)
-            # "rf_reward": float(1/rf_sinr_specific_vehicle)
         }
     
     def get_seperate_reward(self, action: int, vehicle: Vehicle) -> float:
@@ -438,119 +404,4 @@ class HighwayEnvBS(HighwayEnvFast):
             "ho_prob": float(ho_prob),
         }
 
-    # No longer used
-    def _get_distance_rf_matrix(self) -> np.ndarray:
-        '''
-        distance matrice between AVs and RF BSs.
-        计算vehicles 与bss的距离, return: [len(vehicles), len(bss)]
-        '''
-
-        vehicles = self.shared_state.vehicles
-        bss = self.shared_state.rf_bss
-
-        vehicles_pose = np.array([v.position for v in vehicles])
-        bss_pose = np.array([b.position for b in bss])
-
-        distance_matrix = np.sqrt(((vehicles_pose[:, None, :] - bss_pose)**2).sum(axis=-1))
-        return distance_matrix
-
-
-    # No longer used
-    def _get_distance_thz_matrix(self):
-        '''
-        distance matrice between AVs and Thz BSs.
-        '''
-        bss = self.shared_state.thz_bss
-        vehicles = self.shared_state.vehicles
-
-        vehicles_pose = np.array([v.position for v in vehicles])
-        bss_pose = np.array([b.position for b in bss])
-
-        distance_matrix = np.sqrt(((vehicles_pose[:, None, :] - bss_pose)**2).sum(axis=-1))
-        return distance_matrix
-
-    # No longer used
-    def recursive_select_max_bs(self, result):
-        # 从result中选择 最大且可行 的值
-        i = 0
-        # print("result rf\n",result_rf)
-        bs_vacant_list = self.get_vacant_bs_list()  # 剩余连接数量
-        bs_max_name = result.idxmax()
-        length = result.size
-        while (i < length):
-            if self.check_connect_with_bs(bs_vacant_list, bs_max_name):
-                bs_max_name = result.idxmax()
-                max_rate = np.max(result)
-                break
-            result.drop(bs_max_name)  # drop the maximum one due to limitation of capacity
-            bs_max_name = result.idxmax()
-            i = i + 1
-        return bs_max_name, max_rate
-
-    # No longer used
-    def get_performance_assignment_tables(self):
-        # return the mobility aware throughput table and base station assignment table
-        return self.shared_state.bs_performance_table, self.shared_state.bs_assignment_table
-
-    # No longer used
-    def get_concurrent_user(self):
-        # Based on the base station assignment table, we calculate how many concurrent AVs connect with the specific base stations.
-        '''
-        INPUT
-            bs1	bs2	bs3	bs4	bs5	bs6	bs7	bs8	bs9	bs10
-        AV1	0	1	0	1	1	1	1	0	0	1
-        AV2	1	1	1	1	0	0	0	0	1	0
-        AV3	0	0	1	1	1	0	0	0	0	0
-        AV4	1	0	0	1	0	0	1	1	1	0
-        AV5	1	0	1	1	1	1	1	1	1	0
-        AV6	1	0	1	1	0	0	1	0	1	0
-        AV7	0	0	0	0	1	0	1	0	0	1
-        AV8	1	0	1	0	0	1	1	0	1	1
-        AV9	0	0	1	1	1	1	0	1	0	1
-        RETURN
-        bs1	bs2	bs3	bs4	bs5	bs6	bs7	bs8	bs9	bs10
-        5	2	6	7	5	4	6	3	5	4
-        '''
-        # print(self.bs_assignment_table.sum())
-        return self.shared_state.bs_assignment_table.sum()
-
-    # No longer used
-    def get_config(self, attr):
-        return self.config[attr]
-
-    # No longer used
-    def get_current_user(self):
-        return self.get_concurrent_user(self)
-
-    # No longer used
-    def get_vacant_bs_list(self):  # previously get_vacant_rf_bs_list extend to the thz
-        # Based on the concurrent user, we generate how many vacants on each base stations
-        '''
-            bs1	bs2	bs3	bs4	bs5	bs6	bs7	bs8	bs9	bs10
-currentuser	7	4	6	4	3	2	5	5	3	4
-tupple	    5	5	5	5	5	5	5	5	5	5
-result	    -2	1	-1	1	2	3	0	0	2	1
-        '''
-        # n_rf = self.config['rf_bs_count']
-        # n_thz = self.config['thz_bs_count']
-        n_rf = len(self.shared_state.rf_bss)
-        n_thz = len(self.shared_state.thz_bss)
-        tupples_rf = np.ones(n_rf) * 10
-        tupples_thz = np.ones(n_thz) * 5
-        tupples = np.concatenate((tupples_rf, tupples_thz), axis=None)
-        result = tupples
-        current_users = self.get_concurrent_user()
-        try:
-            result = np.subtract(tupples, current_users)
-            result1 = pd.Series(result, index=current_users.index)
-        except:
-            print("current_users and tupples length is unequal, current users and tupples length are", len(current_users), len(tupples))
-        return result1
-
-    # No longer used
-    def check_connect_with_bs(self, vacant_list, bs):
-        # print("vacant_list\n",vacant_list)
-        # print("bs\n",bs)
-        num_vacant = int(vacant_list.loc[bs])
-
-        return (num_vacant > 0)
+    

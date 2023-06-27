@@ -496,7 +496,11 @@ class IDMVehicleWithTelecom(IDMVehicle):
                 position: Vector,
                 heading: float = 0,
                 speed: float = 0,
+<<<<<<< HEAD
                 max_dd: float = 100,   # 检测距离, 会返回该距离内的基站数量
+=======
+                max_dd: float = 10,   # 检测距离, 会返回该距离内的基站数量
+>>>>>>> 36427274cac1d57071e0bac62c4519007a474906
                 target_lane_index: int = None,
                 target_speed: float = None,
                 route: Route = None,
@@ -509,17 +513,28 @@ class IDMVehicleWithTelecom(IDMVehicle):
         self.data = data if data is not None else {}
         self.collecting_data = True
         self.id = id
+<<<<<<< HEAD
         self.max_detection_distance = 100# max_dd
+=======
+        self.max_detection_distance = 50
+>>>>>>> 36427274cac1d57071e0bac62c4519007a474906
         self.target_current_bs = target_current_bs # or 'initial bs'
     def to_dict(self, origin_vehicle: "Vehicle" = None, observe_intentions: bool = True) -> dict:
         d = super().to_dict(origin_vehicle, observe_intentions)
         # rf_cnt, thz_cnt 非被控车辆, 观测值为0
         rf_dist, thz_dist = self.road.get_distance(self.id)
+<<<<<<< HEAD
         print('\nbehavior self.id',self.id)
         print('rf_dist, thz_dist',rf_dist, thz_dist)
         d['rf_cnt'] = np.sum(rf_dist <= self.max_detection_distance)
         d['thz_cnt'] = np.sum(thz_dist <= self.max_detection_distance/2)
         print('\nrf_cnt, thz_cnt',d['rf_cnt'],d['thz_cnt'])		
+=======
+        print("max_detection_distance:",self.max_detection_distance)
+        d['rf_cnt'] = np.sum(rf_dist <= self.max_detection_distance)
+        print("rf_cnt:",np.sum(rf_dist <= self.max_detection_distance))
+        d['thz_cnt'] = np.sum(thz_dist <= 0.5*self.max_detection_distance)
+>>>>>>> 36427274cac1d57071e0bac62c4519007a474906
         return d
     def act(self, action: Union[dict, str] = None):
         if self.collecting_data:
