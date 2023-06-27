@@ -342,7 +342,7 @@ class MyMDPVehicle(MDPVehicle):
                  target_available_thzs: int = 0,		
                  route: Optional[Route] = None) -> None:		
         self.target_current_bs = target_current_bs		
-        self.max_detection_distance = max_dd		
+        self.max_detection_distance = 200# max_dd		
         self.target_ho = target_ho		
         self.id = id		
         self.target_available_rfs = target_available_rfs		
@@ -353,9 +353,12 @@ class MyMDPVehicle(MDPVehicle):
     def to_dict(self, origin_vehicle: "Vehicle" = None, observe_intentions: bool = True) -> dict:		
         d = super().to_dict(origin_vehicle, observe_intentions)		
         # rf_cnt, thz_cnt		
-        rf_dist, thz_dist = self.road.get_distance(self.id)		
+        rf_dist, thz_dist = self.road.get_distance(self.id)
+        print('\ncontroller self.id',self.id)
+        print('rf_dist, thz_dist',rf_dist, thz_dist)		
         d['rf_cnt'] = np.sum(rf_dist <= self.max_detection_distance)		
-        d['thz_cnt'] = np.sum(thz_dist <= self.max_detection_distance)		
+        d['thz_cnt'] = np.sum(thz_dist <= self.max_detection_distance/2)
+        print('\nrf_cnt, thz_cnt',d['rf_cnt'],d['thz_cnt'])		
         return d		
     def act(self, action = None) -> None:		
         		

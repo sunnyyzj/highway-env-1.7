@@ -387,7 +387,7 @@ class HighwayEnvBS(HighwayEnvFast):
             if self.steps > 2: # 3
                 result_rf *=  1 - (vehicle.target_ho/(self.steps))
             # print('ho_dr',result_rf)
-            result_rf *= 1e-8
+            result_rf *= 1e-9 # 1e-8
             # print('coefficient_dr',result_rf)
             # result_rf = utils.lmap(result_rf,[0, 8]],[0, 1])#1e8
             # result_rf = utils.lmap(result_rf,[0, self.config["tele_reward_threshold"]],[0, 2])#1e8
