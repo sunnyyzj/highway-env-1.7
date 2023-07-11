@@ -533,7 +533,10 @@ class KinematicTeleObservation(ObservationType):
         if self.order == "shuffled":
             self.env.np_random.shuffle(obs[1:])
         # Flatten
+
         #print('\n obs df\n', df)
+
+        print('\n obs df\n', df)
         return obs.astype(self.space().dtype)
 
 
