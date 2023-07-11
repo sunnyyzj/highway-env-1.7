@@ -52,7 +52,7 @@ class HighwayEnv(AbstractEnv):
             "high_speed_reward": 0.4,  # The reward received when driving at full speed, linearly mapped to zero for
                                        # lower speeds according to config["reward_speed_range"].
             "lane_change_reward": 0,   # The reward received at each lane change action.
-            "reward_speed_range": [15, 25],#[20, 30]
+            "reward_speed_range": [20, 30],#[20, 30]
             "normalize_reward": True,
             "offroad_terminal": False
         })
@@ -142,7 +142,7 @@ class HighwayEnvFast(HighwayEnv):
         cfg.update({
             "simulation_frequency": 5,
             "lanes_count": 3,
-            "vehicles_count": 2,
+            "vehicles_count": 5,
             "duration": 30,  # [s]
             "ego_spacing": 1.5,
         })
@@ -187,7 +187,7 @@ class HighwayEnvBS(HighwayEnvFast):
             "road_length": 10000,
             "observation": {
                     "type": "KinematicsTele",
-                    "features": ["presence", "x", "y", "vx", "vy", 'rf_cnt', 'thz_cnt'],
+                    "features": ["presence", "x", "y", "vx", "vy", 'bs_cnt'],
                 'vehicles_count': 5,
             },
             "max_detection_distance": 1000,  # 观测距离
@@ -354,9 +354,17 @@ class HighwayEnvBS(HighwayEnvFast):
             
             if self.steps > 2: # 3
                 result_rf *=  1 - (vehicle.target_ho/(self.steps))
-            
-            result_rf = utils.lmap(result_rf,[0, self.config["tele_reward_threshold"]],[0, 2])#1e8
-            
+            # print('ho_dr',result_rf)
+            result_rf *= 1e-9 # 1e-8
+            # print('coefficient_dr',result_rf)
+            # result_rf = utils.lmap(result_rf,[0, 8]],[0, 1])#1e8
+            # result_rf = utils.lmap(result_rf,[0, self.config["tele_reward_threshold"]],[0, 2])#1e8
+            # print('normalize_dr',result_rf)
+            # result_rf = "{:.2f}".format(result_rf)
+            # print('final result_rf',result_rf)
+        
+        # reward_ho = vehicle.target_ho / vehicle.position[0]  # assume this is MyMDPVehicle
+
 
         return {
             "collision_reward": float(vehicle.crashed),

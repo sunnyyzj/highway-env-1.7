@@ -208,6 +208,7 @@ def invQfunc(x):
 def QoS_v(SINR_matrix):
     return 1 - 1/(np.square(1+SINR_matrix))
 
+
 L_B = 10
 def Qos_epsilon_c(SINR_matrix,W):
     D_t = L_B/W
@@ -228,8 +229,9 @@ def rf_Qos_matrix(SINR_matrix):
     # print('V_rf\n',V)
     epsilon_c = Qos_epsilon_c(SINR_matrix,Wr)
     # print('epsilon_c_rf\n',epsilon_c)
-    R = ( W / np.log(2)) * (np.log(1 + SINR_matrix) - np.sqrt(V / L_B) * invQfunc(epsilon_c) )
-    # print('qos_dr\n',R)
+    R = ( W / np.log(2)) * (np.log2(1 + SINR_matrix) - np.sqrt(V / L_B) * invQfunc(epsilon_c) )
+    # print('qos_dr_rf\n',R)
+
     return R 
 
 def thz_Qos_matrix(SINR_matrix):

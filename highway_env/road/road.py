@@ -439,7 +439,7 @@ class BSRoad(Road):
         # vehicles位置更新后, 更新total_dr
         vehicles_pos = np.array([v.position for v in self.vehicles])
         self.dist = np.sqrt(((vehicles_pos[:, None, :] - self.bs_pos)**2).sum(axis=-1))
-        print("dist_matrix",self.dist)
+        #print("dist_matrix",self.dist)
         # rf_dr, _ = rf_Qos_matrix(self.dist[:, :self.rf_bs_count])
         # thz_dr, _ = thz_Qos_matrix(self.dist[:, self.rf_bs_count:])
         dr_matrix_rf,interf_matrix,SINR_rf,SNR_rf = rf_sinr_matrix(self.dist[:, :self.rf_bs_count])
@@ -479,9 +479,13 @@ class BSRoad(Road):
     def get_total_dr(self):
         return self.total_dr
     
+    def get_performance(self, vid):
+        return self.get_performance_table()[vid]
+    
     def get_performance_table(self):
         total_dr_with_threshold = self.total_dr / (self.bs_conn + 1e-8)
         return total_dr_with_threshold
+    
     
     def new_connect(self, old, new):
         # 新的连接

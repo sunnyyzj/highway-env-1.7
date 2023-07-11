@@ -4,6 +4,7 @@ from typing import List, Dict, TYPE_CHECKING, Optional, Union, Tuple
 from gymnasium import spaces
 import numpy as np
 import pandas as pd
+import math
 
 from highway_env import utils
 from highway_env.envs.common.finite_mdp import compute_ttc_grid
@@ -243,7 +244,7 @@ class KinematicObservation(ObservationType):
 
 class KinematicTeleObservation(ObservationType):
     """Observe the kinematics of nearby vehicles."""
-    FEATURES: List[str] = ["presence", "x", "y", "vx", "vy", 'rf_cnt', 'thz_cnt'] #["presence", "x", "y", "vx", "vy"]
+    FEATURES: List[str] = ["presence", "x", "y", "vx", "vy", 'bs_cnt'] #["presence", "x", "y", "vx", "vy"]
     def __init__(self, env: 'AbstractEnv',
                  features: List[str] = None,
                  vehicles_count: int = 5,
@@ -254,6 +255,7 @@ class KinematicTeleObservation(ObservationType):
                  clip: bool = True,
                  see_behind: bool = False,
                  observe_intentions: bool = False,
+                 include_obstacles: bool = True,
                  **kwargs: dict) -> None:
         """
         :param env: The environment to observe
@@ -276,6 +278,7 @@ class KinematicTeleObservation(ObservationType):
         self.clip = clip
         self.see_behind = see_behind
         self.observe_intentions = observe_intentions
+        self.include_obstacles = include_obstacles
     def space(self) -> spaces.Space:
         return spaces.Box(shape=(self.vehicles_count, len(self.features)), low=-np.inf, high=np.inf, dtype=np.float32)
     
@@ -360,6 +363,122 @@ class KinematicTeleObservation(ObservationType):
         df = df.astype(int)
         return df
     
+    def discretize_numpy(self, df: pd.DataFrame) -> pd.DataFrame:
+        resolu_x = 100
+        resolu_vx = 5
+        df['x'] = df['x'].values / resolu_x
+        #df['y'] = df['y'].values / resolu
+        df['vx'] = df['vx'].values / resolu_vx
+        #df['vy'] = df['vy'].values / resolu
+        df = df.astype(int)
+        return df
+    
+    def discretize_base3(self, df: pd.DataFrame) -> pd.DataFrame:
+        df1_x = 50
+        df2_x = 100
+        df1_vx = 15
+        df2_vx = 25
+        df1_y = 4
+        df2_y = 8
+        df1_vy = 3
+        df2_vy = 6
+        df1_rf = 2
+        df2_rf = 4
+        df1_thz = 6
+        df2_thz = 13
+        
+        if(df['x'].values < df1_x):
+            df['x'] = 0
+        elif(df['x'].values < df2_x):
+            df['x'] = 1
+        else:
+            df['x'] = 2
+            
+        if(df['vx'].values < df1_vx):
+            df['vx'] = 0
+        elif(df['vx'].values < df2_vx):
+            df['vx'] = 1
+        else:
+            df['vx'] = 2
+            
+        if(df['y'].values < df1_y):
+            df['y'] = 0
+        elif(df['y'].values < df2_y):
+            df['y'] = 1
+        else:
+            df['y'] = 2
+            
+        if(df['vy'].values < df1_vy):
+            df['vy'] = 0
+        elif(df['vy'].values < df2_vy):
+            df['vy'] = 1
+        else:
+            df['vy'] = 2
+            
+        if(df['rf'].values < df1_rf):
+            df['rf'] = 0
+        elif(df['rf'].values < df2_rf):
+            df['rf'] = 1
+        else:
+            df['rf'] = 2
+            
+        if(df['thz'].values < df1_thz):
+            df['thz'] = 0
+        elif(df['thz'].values < df2_thz):
+            df['thz'] = 1
+        else:
+            df['thz'] = 2
+            
+        return df
+    
+    def convertToDecimal(self,N):
+ 
+        print("Decimal number of", N, "is:", end = " ")
+ 
+        # If the number is greater than 0,
+        # compute the decimal
+        # representation of the number
+        if (N != 0):
+ 
+            decimalNumber = 0
+            i = 0
+            remainder = 0
+ 
+            # Loop to iterate through
+            # the number
+            while (N != 0):
+                remainder = N % 10
+                N = N // 10
+ 
+            # Computing the decimal digit
+                decimalNumber += remainder * math.pow(3, i)
+                i += 1
+         
+            print(decimalNumber)
+     
+        
+    def discretize_base3_upd(self, df: pd.DataFrame) -> pd.DataFrame:
+        df1_x = 50
+        df2_x = 100
+        df1_vx = 15
+        df2_vx = 25
+        df1_y = 3
+        df2_y = 5
+        df1_vy = 3
+        df2_vy = 6
+        
+        df_x_values = np.array(df['x'].values)
+        df_vx_values = np.array(df['vx'].values)
+        df_y_values = np.array(df['y'].values)
+        df_vy_values = np.array(df['vy'].values)
+        
+        df['x'] = np.digitize(df_x_values, [df1_x, df2_x], right=True)
+        df['y'] = np.digitize(df_y_values, [df1_y, df2_y], right=True)
+        df['vx'] = np.digitize(df_vx_values, [df1_vx, df2_vx], right=True)
+        df['vy'] = np.digitize(df_vy_values, [df1_vy, df2_vy], right=True)
+        
+        return df
+    
     def observe(self) -> np.ndarray:
         if not self.env.road:
             return np.zeros(self.space().shape)
@@ -392,7 +511,8 @@ class KinematicTeleObservation(ObservationType):
             # df = df.astype(int)
             # print("df inside self.normalize:\n")
             # print(df)
-            df = self.discretize(df)
+            df = self.discretize_base3_upd(df)
+            # state_tern = self.convertToDecimal()
             
         # if not self.normalize:
         #     df = self.discretize_obs(df)
@@ -413,6 +533,7 @@ class KinematicTeleObservation(ObservationType):
         if self.order == "shuffled":
             self.env.np_random.shuffle(obs[1:])
         # Flatten
+        #print('\n obs df\n', df)
         return obs.astype(self.space().dtype)
 
 
