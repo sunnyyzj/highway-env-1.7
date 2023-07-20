@@ -243,7 +243,7 @@ class KinematicObservation(ObservationType):
 
 class KinematicTeleObservation(ObservationType):
     """Observe the kinematics of nearby vehicles."""
-    FEATURES: List[str] = ["presence", "x", "y", "vx", "vy", 'rf_cnt', 'thz_cnt'] #["presence", "x", "y", "vx", "vy"]
+    FEATURES: List[str] = ["presence", "x", "y", "vx", "vy", "bs_cnt"] #["presence", "x", "y", "vx", "vy",'rf_cnt', 'thz_cnt']
     def __init__(self, env: 'AbstractEnv',
                  features: List[str] = None,
                  vehicles_count: int = 5,

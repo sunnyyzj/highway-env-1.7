@@ -187,7 +187,7 @@ class HighwayEnvBS(HighwayEnvFast):
             "road_length": 10000,
             "observation": {
                     "type": "KinematicsTele",
-                    "features": ["presence", "x", "y", "vx", "vy", 'rf_cnt', 'thz_cnt'],
+                    "features": ["presence", "x", "y", "vx", "vy", "bs_cnt"],#'rf_cnt', 'thz_cnt'
                 'vehicles_count': 5,
             },
             "max_detection_distance": 1000,  # 观测距离
@@ -386,8 +386,10 @@ class HighwayEnvBS(HighwayEnvFast):
             # print('result_rf',result_rf)
             if self.steps > 2: # 3
                 result_rf *=  1 - (vehicle.target_ho/(self.steps))
-            
-            result_rf = utils.lmap(result_rf,[0, self.config["tele_reward_threshold"]],[0, 2])#1e8
+        
+            result_rf *= 1e-8 #utils.lmap(result_rf,[0, self.config["tele_reward_threshold"]],[0, 2])#1e8
+
+            # result_rf = utils.lmap(result_rf,[0, self.config["tele_reward_threshold"]],[0, 2])#1e8
             # result_rf = "{:.2f}".format(result_rf)
             # print('final result_rf',result_rf)
         

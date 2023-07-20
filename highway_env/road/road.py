@@ -409,16 +409,23 @@ class BSRoad(Road):
     
     def _set_bs_position(self, lane, start, length):
         cnt = self.rf_bs_count + self.thz_bs_count
-        self.bs_pos[:, 0] = np.random.random(cnt) * length + start
+        self.bs_pos[:, 0] = np.random.random(cnt)*1000 #np.random.random(cnt) * length + start
         self.bs_pos[:, 1] = np.random.randint(0, 2, cnt) * StraightLane.DEFAULT_WIDTH * lane
     
     def update(self):
         # vehicles位置更新后, 更新total_dr
         vehicles_pos = np.array([v.position for v in self.vehicles])
         self.dist = np.sqrt(((vehicles_pos[:, None, :] - self.bs_pos)**2).sum(axis=-1))
-        rf_dr, _ = rf_sinr_matrix(self.dist[:, :self.rf_bs_count])
-        thz_dr, _ = thz_sinr_matrix(self.dist[:, self.rf_bs_count:])
-        self.total_dr = np.c_[rf_dr, thz_dr]
+        # rf_dr, _ = rf_sinr_matrix(self.dist[:, :self.rf_bs_count])
+        # thz_dr, _ = thz_sinr_matrix(self.dist[:, self.rf_bs_count:])
+        dr_matrix_rf,interf_matrix,SINR_rf,SNR_rf = rf_sinr_matrix(self.dist[:, :self.rf_bs_count])
+        dr_matrix_thz,interf_matrix,SINR_thz,SNR_thz = thz_sinr_matrix(self.dist[:, self.rf_bs_count:])
+        rf_dr = dr_matrix_rf
+        thz_dr = dr_matrix_thz
+        concatenate_dr = np.concatenate((rf_dr, thz_dr), axis=0)
+        self.total_dr = concatenate_dr.T
+        # dr = np.c_[rf_dr, thz_dr].T
+        # self.total_dr = dr #np.c_[rf_dr, thz_dr]
             
     def get_distance(self, vid):
         # rf基站, thz基站
@@ -437,6 +444,9 @@ class BSRoad(Road):
     def get_performance_table(self):
         total_dr_with_threshold = self.total_dr / (self.bs_conn + 1e-8)
         return total_dr_with_threshold
+    
+    def get_performance(self, vid):
+        return self.get_performance_table()[vid]
     
     def new_connect(self, old, new):
         # 新的连接
