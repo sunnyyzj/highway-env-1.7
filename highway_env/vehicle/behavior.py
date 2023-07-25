@@ -497,8 +497,7 @@ class IDMVehicleWithTelecom(IDMVehicle):
                 position: Vector,
                 heading: float = 0,
                 speed: float = 0,
-                max_dd: float = 100,   # 检测距离, 会返回该距离内的基站数量   # 检测距离, 会返回该距离内的基站数量
-                # max_dd: float = 10,   # 检测距离, 会返回该距离内的基站数量
+                max_dd: float = 100,   # 检测距离, 会返回该距离内的基站数量
                 target_lane_index: int = None,
                 target_speed: float = None,
                 route: Route = None,
@@ -512,8 +511,6 @@ class IDMVehicleWithTelecom(IDMVehicle):
         self.collecting_data = True
         self.id = id
         self.max_detection_distance = 100# max_dd
-        self.max_detection_distance = 100# max_dd
-        self.max_detection_distance = 50
         self.target_current_bs = target_current_bs # or 'initial bs'
     
     def get_top_3_bs(self,bs_list):

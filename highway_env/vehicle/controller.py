@@ -213,7 +213,7 @@ class MDPVehicle(ControlledVehicle):
 
     """A controlled vehicle with a specified discrete range of allowed target speeds."""
     # DEFAULT_TARGET_SPEEDS = np.linspace (10, 20, 3) (15, 25, 3) (20, 30, 3) (25, 35, 3) 
-    DEFAULT_TARGET_SPEEDS = np.linspace(20, 30, 3)
+    DEFAULT_TARGET_SPEEDS = np.linspace(40, 50, 3)
 
     def __init__(self,
                  road: Road,
@@ -372,8 +372,6 @@ class MyMDPVehicle(MDPVehicle):
         count = self.get_top_3_bs_controller(performance)
         d['bs_cnt'] = count
         #print('\nrf_cnt, thz_cnt',d['rf_cnt'],d['thz_cnt'])		
-        # print('\ncontroller self.id',self.id)
-        # print('rf_dist, thz_dist',rf_dist, thz_dist)			
         return d		
     def act(self, action = None) -> None:		
         		

@@ -52,7 +52,7 @@ class HighwayEnv(AbstractEnv):
             "high_speed_reward": 0.4,  # The reward received when driving at full speed, linearly mapped to zero for
                                        # lower speeds according to config["reward_speed_range"].
             "lane_change_reward": 0,   # The reward received at each lane change action.
-            "reward_speed_range": [20, 30],#[20, 30]
+            "reward_speed_range": [40, 50],#[20, 30]
             "normalize_reward": True,
             "offroad_terminal": False
         })
@@ -173,11 +173,11 @@ class HighwayEnvBS(HighwayEnvFast):
             },
             "termination_agg_fn": 'any',
             'rf_bs_count': 5,  #20
-            'thz_bs_count': 20,  #100
+            'thz_bs_count': 50,  #100
             'rf_bs_max_connections': 10,  # 最大连接数量
             'thz_bs_max_connections': 5,
             "tele_reward": 4.5 / (10 ** 6.5),#3e-6,
-            "tele_reward_threshold": 4.5 * (10 ** 8),#3e-6,
+            "tele_reward_threshold": 1e9,#3e-6,
             # "dr_reward": 0.2,
             "ho_reward": -5,
             "normalize_reward": True,
@@ -355,10 +355,10 @@ class HighwayEnvBS(HighwayEnvFast):
             if self.steps > 2: # 3
                 result_rf *=  1 - (vehicle.target_ho/(self.steps))
             # print('ho_dr',result_rf)
-            result_rf *= 1e-9 # 1e-8
+            # result_rf *= 1e-9 # 1e-8
             # print('coefficient_dr',result_rf)
             # result_rf = utils.lmap(result_rf,[0, 8]],[0, 1])#1e8
-            # result_rf = utils.lmap(result_rf,[0, self.config["tele_reward_threshold"]],[0, 2])#1e8
+            result_rf = utils.lmap(result_rf,[0, self.config["tele_reward_threshold"]],[0, 1])#1e8
             # print('normalize_dr',result_rf)
             # result_rf = "{:.2f}".format(result_rf)
             # print('final result_rf',result_rf)
