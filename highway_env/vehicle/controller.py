@@ -355,8 +355,9 @@ class MyMDPVehicle(MDPVehicle):
         constant = 1e15
         top3_indices = np.argsort(bs_list)[-3:]
         # Sum the top 3 elements
-        # print("bs top 3:",bs_list[top3_indices])
+        # print("bs top 3:",'top3_indices',top3_indices,bs_list[top3_indices])
         count = np.sum(bs_list[top3_indices] > constant)
+        # print('count',count)
         # top3_sum = np.sum(bs_list[top3_indices])
         return count
     

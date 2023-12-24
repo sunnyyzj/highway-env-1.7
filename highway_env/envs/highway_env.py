@@ -173,11 +173,11 @@ class HighwayEnvBS(HighwayEnvFast):
             },
             "termination_agg_fn": 'any',
             'rf_bs_count': 5,  #20
-            'thz_bs_count': 10,  #100
+            'thz_bs_count': 20,  #100 10
             'rf_bs_max_connections': 10,  # 最大连接数量
             'thz_bs_max_connections': 5,
             "tele_reward": 4.5 / (10 ** 6.5),#3e-6,
-            "tele_reward_threshold": 4.5 * (10 ** 6.5),#3e-6,
+            "tele_reward_threshold": 1e9, # 4.5 * (10 ** 6.5),#3e-6,
             # "dr_reward": 0.2,
             "ho_reward": -5,
             "normalize_reward": True,
@@ -359,7 +359,8 @@ class HighwayEnvBS(HighwayEnvFast):
         """Per-agent reward signal."""
 
         tran_reward = self.get_seperate_reward(action, vehicle)["tran_reward"]
-        tele_reward = self._agent_rewards(action, vehicle)["tele_reward"]
+        tele_reward = self.get_seperate_reward(action, vehicle)["tele_reward"]
+        # tele_reward = self._agent_rewards(action, vehicle)["tele_reward"]
 
         
         reward = tran_reward + tele_reward
@@ -387,9 +388,9 @@ class HighwayEnvBS(HighwayEnvFast):
             if self.steps > 2: # 3
                 result_rf *=  1 - (vehicle.target_ho/(self.steps))
         
-            result_rf *= 1e-8 #utils.lmap(result_rf,[0, self.config["tele_reward_threshold"]],[0, 2])#1e8
+            # result_rf *= 1e-8 #utils.lmap(result_rf,[0, self.config["tele_reward_threshold"]],[0, 2])#1e8
 
-            # result_rf = utils.lmap(result_rf,[0, self.config["tele_reward_threshold"]],[0, 2])#1e8
+            result_rf = utils.lmap(result_rf,[0, self.config["tele_reward_threshold"]],[0, 1])#1e8
             # result_rf = "{:.2f}".format(result_rf)
             # print('final result_rf',result_rf)
         
