@@ -531,6 +531,18 @@ class IDMVehicleWithTelecom(IDMVehicle):
         self.target_current_bs = new
     def collect_data(self):
         pass
+
+    # def _find_closest_bs(self):
+    #     vid = self.id
+    #     aim_bs = self.road.get_total_dr()[vid]
+    #     rest = self.road.get_conn_rest()
+        
+    #     # 以下部分替代了 HighwayEnvBS.recursive_select_max_bs() 函数
+    #     aim_bs_mm = 10 + aim_bs.max() - aim_bs.min()
+    #     vacant = aim_bs - (rest <= 0) * aim_bs_mm
+    #     bid = np.argmax(vacant)
+    #     return bid
+    
     def _find_closest_bs(self):
         vid = self.id
         aim_bs = self.road.get_total_dr()[vid]
@@ -540,4 +552,5 @@ class IDMVehicleWithTelecom(IDMVehicle):
         aim_bs_mm = 10 + aim_bs.max() - aim_bs.min()
         vacant = aim_bs - (rest <= 0) * aim_bs_mm
         bid = np.argmax(vacant)
-        return bid
+        indices = np.argsort(vacant)[-2:][::-1] # find largest 2 vacant ,BSs
+        return bid,indices

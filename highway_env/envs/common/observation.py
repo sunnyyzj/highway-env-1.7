@@ -257,6 +257,7 @@ class KinematicTeleObservation(ObservationType):
                  clip: bool = True,
                  see_behind: bool = False,
                  observe_intentions: bool = False,
+                 include_obstacles: bool = False,
                  **kwargs: dict) -> None:
         """
         :param env: The environment to observe
@@ -279,6 +280,7 @@ class KinematicTeleObservation(ObservationType):
         self.clip = clip
         self.see_behind = see_behind
         self.observe_intentions = observe_intentions
+        self.include_obstacles = include_obstacles
     def space(self) -> spaces.Space:
         return spaces.Box(shape=(self.vehicles_count, len(self.features)), low=-np.inf, high=np.inf, dtype=np.float32)
     def normalize_obs(self, df: pd.DataFrame) -> pd.DataFrame:

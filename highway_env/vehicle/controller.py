@@ -357,6 +357,43 @@ class MyMDPVehicle(MDPVehicle):
         d['rf_cnt'] = np.sum(rf_dist <= self.max_detection_distance)		
         d['thz_cnt'] = np.sum(thz_dist <= self.max_detection_distance)		
         return d		
+    
+    # def act(self, action = None) -> None:		
+        		
+    #     if action is None:		
+    #         super().act()		
+    #         self.action["tele_action"] = self.target_current_bs		
+    #         return		
+    #     action, action_tele = action		
+    #     # 交通学的action		
+    #     super().act(action)		
+    #     # 通讯的action.		
+    #     old = self.target_current_bs		
+    #     new = old		
+    #     if action_tele == "t1":  # t1_dr_control		
+    #         new = self.t1_dr_control()		
+		
+    #     elif action_tele == "t2":		
+    #         new =  self.t2_with_threshold_control()		
+
+    #     elif action_tele == "t3":		
+    #         new = self.t3_with_ho_threshold_control(old)		
+	
+    #     if(old is not None and old != new):		
+    #         self.target_ho += 1		
+    #     self.road.new_connect(old, new)	
+    #     self.target_current_bs = new	
+    #     self.action["tele_action"] = self.target_current_bs	
+
+    def find_differences(list1, list2):
+        set1 = set(list1)
+        set2 = set(list2)
+        
+        # Find the symmetric difference between the sets
+        differences = set1.symmetric_difference(set2)
+        
+        return len(differences)/2
+     
     def act(self, action = None) -> None:		
         		
         if action is None:		
@@ -370,19 +407,87 @@ class MyMDPVehicle(MDPVehicle):
         old = self.target_current_bs		
         new = old		
         if action_tele == "t1":  # t1_dr_control		
-            new = self.t1_dr_control()		
+            bs,new = self.t1_dr_control()		
 		
         elif action_tele == "t2":		
-            new =  self.t2_with_threshold_control()		
+            bs,new  =  self.t2_with_threshold_control()		
 
         elif action_tele == "t3":		
-            new = self.t3_with_ho_threshold_control(old)		
-	
-        if(old is not None and old != new):		
-            self.target_ho += 1		
+            bs,new  = self.t3_with_ho_threshold_control(old)	
+
+        hos = self.find_differences(old, new)
+
+        if(old is not None and hos > 0):		
+            self.target_ho += hos		
         self.road.new_connect(old, new)	
         self.target_current_bs = new	
         self.action["tele_action"] = self.target_current_bs	
+
+
+
+    # def t1_dr_control(self):	
+    #     '''	
+    #     获得距离, 根据距离计算信号强度, 根据连接数量选择最大的可行信号	
+    #     Input T1	
+    #     Find the dr table	
+    #     connect with the maximum data rate BS under the BS capacity. 	
+    #     If exceed the BS capacity, connect to the second maximum data rate BS.	
+    #     self is defined as current vehicle.	
+    #     '''	
+    #     'tele action: dr only'	
+    #     # print("vid is ++++++++++",self._get_vehicle_id)	
+    #     # my_instance = self.env()	
+    #     # result_rf,result_thz = ControlledVehicle.get_rf_thz_info_for_specific_v(self.env._get_bs_assignment_table(),self._get_vehicle_id())	
+    #     vid = self.id	
+    #     # 不要对aim_bs原地修改	
+    #     aim_bs = self.road.get_total_dr()[vid]	
+    #     rest = self.road.get_conn_rest()	
+        	
+    #     # 以下部分替代了 HighwayEnvBS.recursive_select_max_bs() 函数	
+    #     aim_bs_mm = 10 + aim_bs.max() - aim_bs.min()	
+    #     vacant = aim_bs - (rest <= 0) * aim_bs_mm	
+    #     bid = np.argmax(vacant)	
+    #     # bid是基站的id号	
+    #     return bid	
+
+    # def t2_with_threshold_control(self):	
+    #     '''	
+    #     tele action:	
+    #     with bs threshold only 	
+    #     '''	
+    #     vid = self.id	
+    #     aim_bs = self.road.get_total_dr()[vid]	
+    #     rest = self.road.get_conn()	
+    #     # rest + 1e-8: 防止出现 除0 操作	
+    #     aim_bs = aim_bs / (rest + 1e-8)	
+        	
+    #     aim_bs_mm = 10 + aim_bs.max() - aim_bs.min()	
+    #     vacant = aim_bs - (rest <= 0) * aim_bs_mm	
+    #     bid = np.argmax(vacant)	
+    #     return bid	
+
+    # def t3_with_ho_threshold_control(self, current_bs):	
+    #     '''	
+    #     tele action:	
+    #     with bs threshold  and ho penalty	
+    #     '''	
+    #     vid = self.id	
+    #     aim_bs = self.road.get_total_dr()[vid]	
+    #     rest = self.road.get_conn()	
+    #     aim_bs = aim_bs / (rest + 1e-8)	
+        	
+    #     n_rf = self.road.rf_bs_count	
+    #     n_thz = self.road.thz_bs_count	
+    #     coef = np.array([0.8] * n_rf + [0.5] * n_thz)	
+    #     if current_bs is not None:	
+    #         coef[current_bs] = 1	
+    #     aim_bs = coef * aim_bs	
+        	
+    #     aim_bs_mm = 10 + aim_bs.max() - aim_bs.min()	
+    #     vacant = aim_bs - (rest <= 0) * aim_bs_mm	
+    #     bid = np.argmax(vacant)	
+    #     return bid	
+
     def t1_dr_control(self):	
         '''	
         获得距离, 根据距离计算信号强度, 根据连接数量选择最大的可行信号	
@@ -403,10 +508,14 @@ class MyMDPVehicle(MDPVehicle):
         	
         # 以下部分替代了 HighwayEnvBS.recursive_select_max_bs() 函数	
         aim_bs_mm = 10 + aim_bs.max() - aim_bs.min()	
-        vacant = aim_bs - (rest <= 0) * aim_bs_mm	
-        bid = np.argmax(vacant)	
-        # bid是基站的id号	
-        return bid	
+        vacant = aim_bs - (rest <= 0) * aim_bs_mm
+        # bid = np.argmax(vacant)	
+        # # bid是基站的id号	
+        # return bid		
+        bid = np.argmax(vacant)
+        indices = np.argsort(vacant)[-2:][::-1] # find largest 2 vacant ,BSs
+        return bid,indices
+
 
     def t2_with_threshold_control(self):	
         '''	
@@ -421,8 +530,9 @@ class MyMDPVehicle(MDPVehicle):
         	
         aim_bs_mm = 10 + aim_bs.max() - aim_bs.min()	
         vacant = aim_bs - (rest <= 0) * aim_bs_mm	
-        bid = np.argmax(vacant)	
-        return bid	
+        bid = np.argmax(vacant)
+        indices = np.argsort(vacant)[-2:][::-1] # find largest 2 vacant ,BSs
+        return bid,indices
 
     def t3_with_ho_threshold_control(self, current_bs):	
         '''	
@@ -443,6 +553,7 @@ class MyMDPVehicle(MDPVehicle):
         	
         aim_bs_mm = 10 + aim_bs.max() - aim_bs.min()	
         vacant = aim_bs - (rest <= 0) * aim_bs_mm	
-        bid = np.argmax(vacant)	
-        return bid	
+        bid = np.argmax(vacant)
+        indices = np.argsort(vacant)[-2:][::-1] # find largest 2 vacant ,BSs
+        return bid,indices	
    

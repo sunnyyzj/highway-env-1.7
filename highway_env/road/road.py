@@ -493,11 +493,19 @@ class BSRoad(Road):
         total_dr_with_threshold = self.total_dr / (self.bs_conn + 1e-8)
         return total_dr_with_threshold
     
-    def new_connect(self, old, new):
-        # 新的连接
-        if old is not None:
-            self.bs_conn[old] -= 1
-        self.bs_conn[new] += 1
+    # def new_connect(self, old, new):
+    #     # 新的连接
+    #     if old is not None:
+    #         self.bs_conn[old] -= 1
+    #     self.bs_conn[new] += 1
+    
+    def new_connect(self, oldlist, newlist):
+        # 新的连接 group HOs
+        for old in oldlist:
+            if old is not None:
+                self.bs_conn[old] -= 1
+        for new in newlist:
+            self.bs_conn[new] += 1
     
     def kind_of_bs(self, bid):
         # 根据bid返回对应基站的种类
