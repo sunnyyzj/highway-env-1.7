@@ -7,7 +7,7 @@
 [![GitHub contributors](https://img.shields.io/github/contributors/eleurent/highway-env)](https://github.com/eleurent/highway-env/graphs/contributors)
 
 
-A collection of environments for *autonomous driving* and tactical decision-making tasks
+A collection of environments for *autonomous driving* and tactical decision-making tasks, developed and maintained by [Edouard Leurent](https://github.com/eleurent).
 
 <p align="center">
     <img src="https://raw.githubusercontent.com/eleurent/highway-env/master/../gh-media/docs/media/highway-env.gif?raw=true"><br/>
@@ -155,6 +155,7 @@ import gymnasium as gym
 
 env = gym.make('highway-v0', render_mode='human')
 
+obs, info = env.reset()
 done = truncated = False
 while not (done or truncated):
     action = ... # Your agent code here
@@ -164,6 +165,10 @@ while not (done or truncated):
 ## Documentation
 
 Read the [documentation online](https://farama-foundation.github.io/HighwayEnv/).
+
+## Development Roadmap
+
+Here is the [roadmap](https://github.com/Farama-Foundation/HighwayEnv/issues/539) for future development work.
 
 ## Citing
 
@@ -211,8 +216,15 @@ List of publications & preprints using `highway-env` (please open a pull request
 *   [Learning Interaction-aware Guidance Policies for Motion Planning in Dense Traffic Scenarios](https://arxiv.org/abs/2107.04538) (Jul 2021)
 *   [Automatic Overtaking on Two-way Roads with Vehicle Interactions Based on Proximal Policy Optimization](https://ieeexplore.ieee.org/abstract/document/9575954) (Jul 2021)
 *   [Robust Predictable Control](https://arxiv.org/abs/2109.03214) (Sep 2021)
+*   [Adapting Autonomous Agents for Automotive Driving Games](https://link.springer.com/chapter/10.1007/978-3-030-92182-8_10) (Nov 2021)
 *   [Improving Robustness of Deep Reinforcement Learning Agents: Environment Attack based on the Critic Network](https://ieeexplore.ieee.org/document/9892901) (Jul 2022)
 *   [Autonomous Highway Merging in Mixed Traffic Using Reinforcement Learning and Motion Predictive Safety Controller](https://ieeexplore.ieee.org/document/9921741) (Oct 2022)
+*   [High-Level Decision-Making Non-player Vehicles](https://link.springer.com/chapter/10.1007/978-3-031-22124-8_22) (Nov 2022)
+*   [Designing an Interpretability Analysis Framework for Deep Reinforcement Learning (DRL) Agents in Highway Automated Driving Simulation](https://link.springer.com/chapter/10.1007/978-3-031-26066-7_37) (Feb 2023)
+*   [Explaining a Deep Reinforcement Learning (DRL)-Based Automated Driving Agent in Highway Simulations](https://ieeexplore.ieee.org/document/10077125) (Mar 2023)
+*   [Investigating High-Level Decision Making for Automated Driving](https://link.springer.com/chapter/10.1007/978-3-031-30333-3_41) (Apr 2023)
+*   [Implementing Deep Reinforcement Learning (DRL)-based Driving Styles for Non-Player Vehicles](https://journal.seriousgamessociety.org/index.php/IJSG/article/view/638) (Nov 2023)
+*   [Investigating Adversarial Policy Learning for Robust Agents in Automated Driving Highway Simulations](https://link.springer.com/chapter/10.1007/978-3-031-48121-5_18) (Jan 2024)
 
 PhD theses
 *   [Reinforcement learning for Dialogue Systems optimization with user adaptation](https://hal.inria.fr/tel-02422691/) (2019)
@@ -222,5 +234,6 @@ PhD theses
 Master theses
 *   [Multi-Agent Reinforcement Learning with Application on Traffic Flow Control](https://www.diva-portal.org/smash/get/diva2:1573441/FULLTEXT01.pdf) (Jun 2021)
 *   [Deep Reinforcement Learning for Automated Parking](https://repositorio-aberto.up.pt/bitstream/10216/136074/2/494682.pdf) (Aug 2021)
+*   [Deep Reinforcement Learning and Imitation Learning for Autonomous Driving in a Minimalist Environment](https://www.academia.edu/107587654/Deep_Reinforcement_Learning_and_Imitation_Learning_for_Autonomous_Driving_in_a_Minimalist_Environment) (Jun 2021)
 
 
