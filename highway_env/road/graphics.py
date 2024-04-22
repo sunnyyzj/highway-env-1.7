@@ -7,7 +7,7 @@ from highway_env.road.lane import LineType, AbstractLane
 from highway_env.road.road import Road
 from highway_env.utils import Vector
 from highway_env.vehicle.graphics import VehicleGraphics
-from highway_env.vehicle.objects import Obstacle, Landmark
+from highway_env.vehicle.objects import Obstacle, Landmark, RF_BS, THz_BS
 
 if TYPE_CHECKING:
     from highway_env.vehicle.objects import RoadObject
@@ -345,10 +345,16 @@ class RoadObjectGraphics:
                 color = cls.RED
             else:
                 color = cls.YELLOW
-        elif isinstance(object_, Landmark):
+        elif isinstance(object_, RF_BS):
             if object_.hit:
                 # indicates success
-                color = cls.GREEN
+                color = cls.BLACK
+            else:
+                color = cls.BLACK
+        elif isinstance(object_, THz_BS):
+            if object_.hit:
+                # indicates success
+                color = cls.BLUE
             else:
                 color = cls.BLUE
 

@@ -4,7 +4,7 @@ import pytest
 import highway_env
 
 highway_env.register_highway_envs()
-envs = ["highway-v0", "merge-v0"]
+envs = ["highway-v0", "merge-v0","highway-bs-v0"]
 
 
 @pytest.mark.parametrize("env_spec", envs)

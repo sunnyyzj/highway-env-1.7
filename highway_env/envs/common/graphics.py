@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Callable, List, Optional
 import numpy as np
 import pygame
 
-from highway_env.envs.common.action import ActionType, DiscreteMetaAction, ContinuousAction
+from highway_env.envs.common.action import ActionType, DiscreteMetaAction, ContinuousAction, DiscreteDualObjectMetaAction
 from highway_env.road.graphics import WorldSurface, RoadGraphics
 from highway_env.vehicle.graphics import VehicleGraphics
 
@@ -79,6 +79,11 @@ class EnvViewer(object):
         """
         if isinstance(self.env.action_type, DiscreteMetaAction):
             actions = [self.env.action_type.actions[a] for a in actions]
+        
+        elif isinstance(self.env.action_type, DiscreteDualObjectMetaAction):
+            # Extract only the vehicle maneuver component of each action (first element of each action list)
+            actions = [self.env.action_type.actions[a][0] for a in actions]
+
         if len(actions) > 1:
             self.vehicle_trajectory = self.env.vehicle.predict_trajectory(actions,
                                                                           1 / self.env.config["policy_frequency"],
@@ -175,6 +180,10 @@ class EventHandler(object):
         """
         if isinstance(action_type, DiscreteMetaAction):
             cls.handle_discrete_action_event(action_type, event)
+
+        elif isinstance(action_type, DiscreteDualObjectMetaAction):
+            cls.handle_discrete_dual_object_action_event(action_type, event)
+
         elif action_type.__class__ == ContinuousAction:
             cls.handle_continuous_action_event(action_type, event)
 
@@ -189,6 +198,20 @@ class EventHandler(object):
                 action_type.act(action_type.actions_indexes["LANE_RIGHT"])
             if event.key == pygame.K_UP:
                 action_type.act(action_type.actions_indexes["LANE_LEFT"])
+
+    @classmethod
+    def handle_discrete_dual_object_action_event(cls, action_type: DiscreteDualObjectMetaAction, event: pygame.event.EventType) -> None:
+        if event.type == pygame.KEYDOWN:
+            # Adjust keys or conditions based on the required controls for dual actions
+            if event.key == pygame.K_RIGHT and action_type.longitudinal:
+                action_type.act(action_type.actions_indexes["FASTER"][0])  # Assuming [0] is the maneuver
+            if event.key == pygame.K_LEFT and action_type.longitudinal:
+                action_type.act(action_type.actions_indexes["SLOWER"][0])  # Assuming [0] is the maneuver
+            if event.key == pygame.K_DOWN and action_type.lateral:
+                action_type.act(action_type.actions_indexes["LANE_RIGHT"][0])  # Assuming [0] is the maneuver
+            if event.key == pygame.K_UP and action_type.lateral:
+                action_type.act(action_type.actions_indexes["LANE_LEFT"][0])  # Assuming [0] is the maneuver
+
 
     @classmethod
     def handle_continuous_action_event(cls, action_type: ContinuousAction, event: pygame.event.EventType) -> None:

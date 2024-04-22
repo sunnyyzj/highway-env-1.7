@@ -172,14 +172,16 @@ class HighwayEnvBS(HighwayEnvFast):
                 "type": "DiscreteDualObjectMetaAction",
             },
             "termination_agg_fn": 'any',
+            "controlled_vehicles": 1,
+            "vehicles_count": 50,
             'rf_bs_count': 5,  #20
-            'thz_bs_count': 20,  #100 10
+            'thz_bs_count': 20,  # 20   100 10 20 30 40 50
             'rf_bs_max_connections': 10,  # 最大连接数量
             'thz_bs_max_connections': 5,
             "tele_reward": 4.5 / (10 ** 6.5),#3e-6,
             "tele_reward_threshold": 1e9, # 4.5 * (10 ** 6.5),#3e-6,
             # "dr_reward": 0.2,
-            "ho_reward": -5,
+            # "ho_reward": -5,
             "normalize_reward": True,
             "other_vehicles_type": "highway_env.vehicle.behavior.IDMVehicleWithTelecom",
             "lanes_count": 3, #4
@@ -191,6 +193,7 @@ class HighwayEnvBS(HighwayEnvFast):
                 'vehicles_count': 5,
             },
             "max_detection_distance": 1000,  # 观测距离
+            "render_mode": "rgb_array"
         })
         return conf
 
