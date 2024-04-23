@@ -342,6 +342,7 @@ class RoadGraphics(object):
         :param offscreen: whether the rendering should be done offscreen or not
         """
         for o in road.objects:
+            # offscreen = True
             RoadObjectGraphics.display(o, surface, offscreen=offscreen)
 
 
@@ -354,6 +355,8 @@ class RoadObjectGraphics:
     RED = (255, 100, 100)
     GREEN = (50, 200, 0)
     BLACK = (60, 60, 60)
+    PURPLE = (128, 0, 128)
+    ORANGE = (255, 165, 0)
     DEFAULT_COLOR = YELLOW
 
     @classmethod
@@ -362,7 +365,7 @@ class RoadObjectGraphics:
         object_: "RoadObject",
         surface: WorldSurface,
         transparent: bool = False,
-        offscreen: bool = False,
+        offscreen: bool = False, #False
     ):
         """
         Display a road objects on a pygame surface.
@@ -391,9 +394,36 @@ class RoadObjectGraphics:
         ):  # convert_alpha throws errors in offscreen mode TODO() Explain why
             s = pygame.Surface.convert_alpha(s)
         h = o.heading if abs(o.heading) > 2 * np.pi / 180 else 0
+
         # Centered rotation
         position = surface.pos2pix(o.position[0], o.position[1])
         cls.blit_rotate(surface, s, position, np.rad2deg(-h))
+
+        # After the object has been blitted to the main surface
+        if not offscreen:
+            # Initialize Pygame font if not already initialized
+            if not pygame.font.get_init():
+                pygame.font.init()
+
+            # Load a font (default system font, size 14)å
+            font = pygame.font.Font(None, 14)
+            # Create a text surface with the OID
+            if str(o.__class__.__name__) == 'RF_BS':
+                text = 'RBS'
+            elif str(o.__class__.__name__) == 'THz_BS':
+                text = 'TBS'
+            else:
+                text = str(o.__class__.__name__)
+            # text = str(o.__class__.__name__) + str(position[0])
+            oid_text = font.render(text, True, cls.BLACK)
+            # Get the size of the text
+            text_width, text_height = oid_text.get_size()
+            # Calculate position for the text, centered over the object
+            text_pos = (position[0] - text_width // 2, position[1] - surface.pix(o.LENGTH / 2) - text_height)
+
+            # Blit the text surface onto the main surface
+            surface.blit(oid_text, text_pos)
+
 
     @staticmethod
     def blit_rotate(
@@ -451,15 +481,15 @@ class RoadObjectGraphics:
         elif isinstance(object_, RF_BS):
             if object_.hit:
                 # indicates success
-                color = cls.BLACK
+                color = cls.PURPLE
             else:
-                color = cls.BLACK
+                color = cls.PURPLE
         elif isinstance(object_, THz_BS):
             if object_.hit:
                 # indicates success
-                color = cls.BLUE
+                color = cls.ORANGE
             else:
-                color = cls.BLUE
+                color = cls.ORANGE
 
         if transparent:
             color = (color[0], color[1], color[2], 30)

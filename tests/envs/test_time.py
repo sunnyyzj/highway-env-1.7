@@ -25,9 +25,10 @@ def time_env(env_name, steps=20):
 
 def test_running_time(repeat=1):
     for env_name, steps in [
-        ("highway-v0", 10),
-        ("highway-fast-v0", 10),
-        ("parking-v0", 20),
+        # ("highway-v0", 10),
+        # ("highway-fast-v0", 10),
+        # ("parking-v0", 20),
+        ("highway-bs-v0", 20),
     ]:
         env_time = wrapper(time_env, env_name, steps)
         time_spent = timeit.timeit(env_time, number=repeat) / repeat

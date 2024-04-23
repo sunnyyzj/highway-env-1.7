@@ -168,7 +168,7 @@ class HighwayEnvFast(HighwayEnv):
         cfg.update(
             {
                 "simulation_frequency": 5,
-                "lanes_count": 3,
+                "lanes_count": 5,
                 "vehicles_count": 20,
                 "duration": 30,  # [s]
                 "ego_spacing": 1.5,
@@ -202,8 +202,8 @@ class HighwayEnvBS(HighwayEnvFast):
             "termination_agg_fn": 'any',
             "controlled_vehicles": 1,
             "vehicles_count": 50,
-            'rf_bs_count': 5,  #20
-            'thz_bs_count': 20,  # 20   100 10 20 30 40 50
+            'rf_bs_count': 20,  # 5 20
+            'thz_bs_count': 100,  # 20   100 10 20 30 40 50
             'rf_bs_max_connections': 10,  # 最大连接数量
             'thz_bs_max_connections': 5,
             "tele_reward": 4.5 / (10 ** 6.5),#3e-6,
@@ -212,7 +212,7 @@ class HighwayEnvBS(HighwayEnvFast):
             # "ho_reward": -5,
             "normalize_reward": True,
             "other_vehicles_type": "highway_env.vehicle.behavior.IDMVehicleWithTelecom",
-            "lanes_count": 3, #4
+            "lanes_count": 5, #3 4
             "road_start": 0,
             "road_length": 10000,
             "observation": {
@@ -231,6 +231,7 @@ class HighwayEnvBS(HighwayEnvFast):
         self._create_road()
         self._create_vehicles()
         self.road.update()
+        self.render_mode = self.config["render_mode"]
         # self._create_bs_assignment_table()
 
     def _create_road(self) -> None:
@@ -247,6 +248,7 @@ class HighwayEnvBS(HighwayEnvFast):
                            self.config["lanes_count"],
                            self.config['road_start'],
                            self.config['road_length'],
+                           self.config["duration"] * sum(self.config["reward_speed_range"]) / len(self.config["reward_speed_range"]), # 40 * (20+30)/2 = 1000 time steps* speed
                            network=network,
                            np_random=self.np_random,
                            record_history=self.config["show_trajectories"])
@@ -259,7 +261,18 @@ class HighwayEnvBS(HighwayEnvFast):
             # obstacle_lane = 0
             obstacle_dist = np.random.randint(300, 10000)
             self.road.objects.append(Obstacle(self.road, [obstacle_dist, obstacle_lane]))
+        
+        
 
+        # Append RF base stations to road objects
+        for i in range(self.config['rf_bs_count']):
+            self.road.objects.append(RF_BS(self.road, self.road.bs_pos[i],0,0))
+        
+        # Append THz base stations to road objects
+        for i in range(self.config['rf_bs_count'], self.config['rf_bs_count']+ self.config['thz_bs_count']):
+            self.road.objects.append(THz_BS(self.road, self.road.bs_pos[i],0,0))
+
+        # print('bs_pos',self.road.bs_pos)
 
     def _create_vehicles(self) -> None:
         """Create some new random vehicles of a given type, and add them on the road."""
@@ -297,31 +310,6 @@ class HighwayEnvBS(HighwayEnvFast):
                 vehicle.randomize_behavior()
                 self.road.vehicles.append(vehicle)
                 # self.shared_state.vehicles.append(vehicle)  # shared state append
-
-    # No longer used
-    def _create_assignment_rf_matrix(self):
-        '''
-        distance matrice between AVs and RF BSs.
-        '''
-        bss = self.shared_state.rf_bss
-        vehicles = self.shared_state.vehicles
-        # 用一个numpy表示就行了, 顺序是不会乱的
-        return np.zeros((len(vehicles), len(bss)))
-
-
-    # No longer used
-    def _create_assignment_thz_matrix(self):
-        '''
-        distance matrice between AVs and RF BSs.
-        '''
-        bss = self.shared_state.thz_bss
-        vehicles = self.shared_state.vehicles
-        return np.zeros((len(vehicles), len(bss)))
-
-
-    # not used
-    def _get_bs_assignment_table(self) -> np.ndarray:
-        return self.shared_state.bs_assignment_table
 
     def _info(self, obs: np.ndarray, action: int) -> dict:
         info = super()._info(obs, action)
@@ -467,120 +455,3 @@ class HighwayEnvBS(HighwayEnvFast):
             "ho_density": float(ho_density),
             "ho_prob": float(ho_prob),
         }
-
-    # No longer used
-    def _get_distance_rf_matrix(self) -> np.ndarray:
-        '''
-        distance matrice between AVs and RF BSs.
-        计算vehicles 与bss的距离, return: [len(vehicles), len(bss)]
-        '''
-
-        vehicles = self.shared_state.vehicles
-        bss = self.shared_state.rf_bss
-
-        vehicles_pose = np.array([v.position for v in vehicles])
-        bss_pose = np.array([b.position for b in bss])
-
-        distance_matrix = np.sqrt(((vehicles_pose[:, None, :] - bss_pose)**2).sum(axis=-1))
-        return distance_matrix
-
-
-    # No longer used
-    def _get_distance_thz_matrix(self):
-        '''
-        distance matrice between AVs and Thz BSs.
-        '''
-        bss = self.shared_state.thz_bss
-        vehicles = self.shared_state.vehicles
-
-        vehicles_pose = np.array([v.position for v in vehicles])
-        bss_pose = np.array([b.position for b in bss])
-
-        distance_matrix = np.sqrt(((vehicles_pose[:, None, :] - bss_pose)**2).sum(axis=-1))
-        return distance_matrix
-
-    # No longer used
-    def recursive_select_max_bs(self, result):
-        # 从result中选择 最大且可行 的值
-        i = 0
-        # print("result rf\n",result_rf)
-        bs_vacant_list = self.get_vacant_bs_list()  # 剩余连接数量
-        bs_max_name = result.idxmax()
-        length = result.size
-        while (i < length):
-            if self.check_connect_with_bs(bs_vacant_list, bs_max_name):
-                bs_max_name = result.idxmax()
-                max_rate = np.max(result)
-                break
-            result.drop(bs_max_name)  # drop the maximum one due to limitation of capacity
-            bs_max_name = result.idxmax()
-            i = i + 1
-        return bs_max_name, max_rate
-
-    # No longer used
-    def get_performance_assignment_tables(self):
-        # return the mobility aware throughput table and base station assignment table
-        return self.shared_state.bs_performance_table, self.shared_state.bs_assignment_table
-
-    # No longer used
-    def get_concurrent_user(self):
-        # Based on the base station assignment table, we calculate how many concurrent AVs connect with the specific base stations.
-        '''
-        INPUT
-            bs1	bs2	bs3	bs4	bs5	bs6	bs7	bs8	bs9	bs10
-        AV1	0	1	0	1	1	1	1	0	0	1
-        AV2	1	1	1	1	0	0	0	0	1	0
-        AV3	0	0	1	1	1	0	0	0	0	0
-        AV4	1	0	0	1	0	0	1	1	1	0
-        AV5	1	0	1	1	1	1	1	1	1	0
-        AV6	1	0	1	1	0	0	1	0	1	0
-        AV7	0	0	0	0	1	0	1	0	0	1
-        AV8	1	0	1	0	0	1	1	0	1	1
-        AV9	0	0	1	1	1	1	0	1	0	1
-        RETURN
-        bs1	bs2	bs3	bs4	bs5	bs6	bs7	bs8	bs9	bs10
-        5	2	6	7	5	4	6	3	5	4
-        '''
-        # print(self.bs_assignment_table.sum())
-        return self.shared_state.bs_assignment_table.sum()
-
-    # No longer used
-    def get_config(self, attr):
-        return self.config[attr]
-
-    # No longer used
-    def get_current_user(self):
-        return self.get_concurrent_user(self)
-
-    # No longer used
-    def get_vacant_bs_list(self):  # previously get_vacant_rf_bs_list extend to the thz
-        # Based on the concurrent user, we generate how many vacants on each base stations
-        '''
-            bs1	bs2	bs3	bs4	bs5	bs6	bs7	bs8	bs9	bs10
-currentuser	7	4	6	4	3	2	5	5	3	4
-tupple	    5	5	5	5	5	5	5	5	5	5
-result	    -2	1	-1	1	2	3	0	0	2	1
-        '''
-        # n_rf = self.config['rf_bs_count']
-        # n_thz = self.config['thz_bs_count']
-        n_rf = len(self.shared_state.rf_bss)
-        n_thz = len(self.shared_state.thz_bss)
-        tupples_rf = np.ones(n_rf) * 10
-        tupples_thz = np.ones(n_thz) * 5
-        tupples = np.concatenate((tupples_rf, tupples_thz), axis=None)
-        result = tupples
-        current_users = self.get_concurrent_user()
-        try:
-            result = np.subtract(tupples, current_users)
-            result1 = pd.Series(result, index=current_users.index)
-        except:
-            print("current_users and tupples length is unequal, current users and tupples length are", len(current_users), len(tupples))
-        return result1
-
-    # No longer used
-    def check_connect_with_bs(self, vacant_list, bs):
-        # print("vacant_list\n",vacant_list)
-        # print("bs\n",bs)
-        num_vacant = int(vacant_list.loc[bs])
-
-        return (num_vacant > 0)

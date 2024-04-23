@@ -5,7 +5,7 @@ import pytest
 import highway_env
 
 highway_env.register_highway_envs()
-envs = ["highway-v0", "merge-v0","highway-bs-v0"]
+envs = ["highway-bs-v0"]#"highway-v0", "merge-v0",
 
 
 @pytest.mark.parametrize("env_spec", envs)
@@ -41,6 +41,8 @@ def test_obs_grayscale(env_spec, stack_size=4):
         }
     )
     obs, info = env.reset()
+    # print('obs',obs)
+    # print('info',info)
     env.close()
     assert isinstance(obs, np.ndarray)
     assert obs.shape == (

@@ -381,6 +381,14 @@ class DiscreteDualObjectMetaAction(ActionType):
         return functools.partial(self.vehicle_type, target_speeds=self.target_speeds)
     def act(self, action: int) -> None:
         # 建议action用二元组表示(神经网络的输出为2个元素): [交通动作, 通信动作]. 尚未实现
+        # print("action",action,type(action))
+        # print("self.actions\n",self.actions)
+        if isinstance(action, np.ndarray):
+            if action.ndim == 0:
+                action = action.item()  # Convert 0-d array to scalar
+            else:
+                action = int(action[0])  # Assuming the action is the first element of         print("self.actions[action]",self.actions[action])
+            # self.MyMDPVehicle.act(self.actions[action])
         self.controlled_vehicle.act(self.actions[action])#self.controlled_vehicle.act(self.actions[action][0])
     def get_available_actions(self) -> List[int]:
         """

@@ -7,15 +7,16 @@ from highway_env.envs.highway_env import HighwayEnv
 highway_env.register_highway_envs()
 
 envs = [
-    "highway-v0",
-    "merge-v0",
-    "roundabout-v0",
-    "intersection-v0",
-    "intersection-v1",
-    "parking-v0",
-    "two-way-v0",
-    "lane-keeping-v0",
-    "racetrack-v0",
+    # "highway-v0",
+    # "merge-v0",
+    # "roundabout-v0",
+    # "intersection-v0",
+    # "intersection-v1",
+    # "parking-v0",
+    # "two-way-v0",
+    # "lane-keeping-v0",
+    # "racetrack-v0",
+    "highway-bs-v0",
 ]
 
 

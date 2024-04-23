@@ -6,7 +6,9 @@ highway_env.register_highway_envs()
 
 
 def test_preprocessors():
-    env = gym.make("highway-v0")
+    # env = gym.make("highway-v0")
+    # env = gym.make("highway-bs-v0")
+    env = gym.make("highway-fast-v0", render_mode="rgb_array")
     env = env.simplify()
     env = env.change_vehicles("highway_env.vehicle.behavior.IDMVehicle")
     env = env.set_preferred_lane(0)

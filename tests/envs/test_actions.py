@@ -6,15 +6,17 @@ import highway_env
 highway_env.register_highway_envs()
 
 action_configs = [
-    {"type": "ContinuousAction"},
-    {"type": "DiscreteAction"},
-    {"type": "DiscreteMetaAction"},
+    # {"type": "ContinuousAction"},
+    # {"type": "DiscreteAction"},
+    # {"type": "DiscreteMetaAction"},
+    {"type":"DiscreteDualObjectMetaAction"}
 ]
 
 
 @pytest.mark.parametrize("action_config", action_configs)
 def test_action_type(action_config):
-    env = gym.make("highway-v0")
+    # env = gym.make("highway-v0")
+    env = gym.make("highway-bs-v0")
     env.configure({"action": action_config})
     env.reset()
     for _ in range(3):

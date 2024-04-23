@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 import numpy as np
 
 from highway_env.road.lane import AbstractLane, LineType, StraightLane, lane_from_config
-from highway_env.vehicle.objects import Landmark
+from highway_env.vehicle.objects import Landmark, RF_BS, THz_BS
 
 if TYPE_CHECKING:
     from highway_env.vehicle import kinematics, objects
@@ -525,6 +525,7 @@ class BSRoad(Road):
                  lane: int = 4,  # 车道数量
                  start: float = 0, 
                  length: float = 10000,
+                 bs_length:float = 1000,
                  network: RoadNetwork = None, 
                  vehicles: List['kinematics.Vehicle'] = None, 
                  road_objects: List['objects.RoadObject'] = None, 
@@ -534,6 +535,7 @@ class BSRoad(Road):
         super().__init__(network, vehicles, road_objects, np_random, record_history)
         self.rf_bs_count = rf_bs_count
         self.thz_bs_count = thz_bs_count
+        self.road_objects = road_objects if road_objects else []
         
         # 位置
         self.bs_pos = np.zeros((self.rf_bs_count + self.thz_bs_count, 2))
@@ -546,12 +548,15 @@ class BSRoad(Road):
         # 等同于 HighwayEnvBS._create_bs_assignment_table() 中的 total_dr
         self.total_dr = np.zeros(0)
         # 初始化各个基站的位置
-        self._set_bs_position(lane, start, length)
+        self._set_bs_position(lane, start, length,bs_length)
     
-    def _set_bs_position(self, lane, start, length):
+    def _set_bs_position(self, lane, start, length,bs_length):
         cnt = self.rf_bs_count + self.thz_bs_count
-        self.bs_pos[:, 0] = np.random.random(cnt)*1000 #np.random.random(cnt) * length + start
-        self.bs_pos[:, 1] = np.random.randint(0, 2, cnt) * StraightLane.DEFAULT_WIDTH * lane
+        self.bs_pos[:, 0] = np.random.random(cnt)* bs_length #np.random.random(cnt) * length + start
+        # self.bs_pos[:, 1] = np.random.randint(0, 2, cnt) * StraightLane.DEFAULT_WIDTH * lane
+        # self.bs_pos[:, 1] = np.random.randint(-1, 2, cnt) * StraightLane.DEFAULT_WIDTH * lane
+        self.bs_pos[:, 1] = np.random.choice([-1, 1], cnt) * StraightLane.DEFAULT_WIDTH * lane
+
     
     def update(self):
         # vehicles位置更新后, 更新total_dr
