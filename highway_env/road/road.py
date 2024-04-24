@@ -549,10 +549,34 @@ class BSRoad(Road):
         self.total_dr = np.zeros(0)
         # 初始化各个基站的位置
         self._set_bs_position(lane, start, length,bs_length)
+
+    def generate_spaced_numbers(cnt, bs_length, gap=2):
+        # Calculate the number of gaps that can fit within the length
+        max_possible_values = (bs_length - (gap * (cnt - 1))) / cnt
+        
+        if max_possible_values < 0:
+            # Not enough space to have 'cnt' numbers with the desired gap,
+            # reduce the gap to fit the numbers in the available space
+            gap = (bs_length - cnt) / (cnt - 1) if cnt > 1 else 0
+            max_possible_values = (bs_length - (gap * (cnt - 1))) / cnt
+
+        # Generate starting points uniformly distributed
+        numbers = np.random.random(cnt) * max_possible_values
+        
+        # Add the minimum gap between the numbers by scaling with the gap
+        numbers = np.cumsum(numbers) + np.arange(cnt) * gap
+        
+        # Ensure the last number does not exceed bs_length
+        if numbers[-1] > bs_length:
+            # Scale down the numbers to fit within the range
+            numbers *= bs_length / numbers[-1]
+        
+        return numbers
     
     def _set_bs_position(self, lane, start, length,bs_length):
         cnt = self.rf_bs_count + self.thz_bs_count
         self.bs_pos[:, 0] = np.random.random(cnt)* bs_length #np.random.random(cnt) * length + start
+        self.bs_pos[:, 0] = BSRoad.generate_spaced_numbers(cnt, bs_length,2)
         # self.bs_pos[:, 1] = np.random.randint(0, 2, cnt) * StraightLane.DEFAULT_WIDTH * lane
         # self.bs_pos[:, 1] = np.random.randint(-1, 2, cnt) * StraightLane.DEFAULT_WIDTH * lane
         self.bs_pos[:, 1] = np.random.choice([-1, 1], cnt) * StraightLane.DEFAULT_WIDTH * lane

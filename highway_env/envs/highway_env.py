@@ -217,7 +217,7 @@ class HighwayEnvBS(HighwayEnvFast):
             "road_length": 10000,
             "observation": {
                     "type": "KinematicsTele",
-                    "features": ["presence", "x", "y", "vx", "vy", "bs_cnt"],#'rf_cnt', 'thz_cnt'
+                    "features": ["presence", "x", "y", "vx", "vy", 'rf_cnt', 'thz_cnt'],#'rf_cnt', 'thz_cnt' "bs_cnt"
                 'vehicles_count': 5,
             },
             "max_detection_distance": 1000,  # 观测距离
@@ -286,7 +286,7 @@ class HighwayEnvBS(HighwayEnvFast):
         for others in other_per_controlled:
             vehicle = Vehicle.create_random(self.road, speed=25, lane_id=self.config["initial_lane_id"], spacing=self.config["ego_spacing"])
             vehicle = self.action_type.vehicle_class(
-                id, self.road, vehicle.position, vehicle.heading, vehicle.speed, max_dd = self.config["max_detection_distance"])
+                id, self.road, vehicle.position, vehicle.heading, vehicle.speed, max_dd = self.config["max_detection_distance"], rf_cnt_total = self.config["rf_bs_count"], thz_cnt_total = self.config["thz_bs_count"])
             id += 1
             if self.config['controlled_vehicles']:
                 # vehicle_lane = np.random.choice(lanes)
@@ -305,7 +305,7 @@ class HighwayEnvBS(HighwayEnvFast):
             for _ in range(others):
                 vehicle = Vehicle.create_random(self.road, spacing=1/self.config["vehicles_density"])
                 vehicle = other_vehicles_type(
-                    id, self.road, vehicle.position, vehicle.heading, vehicle.speed, max_dd = self.config["max_detection_distance"])
+                    id, self.road, vehicle.position, vehicle.heading, vehicle.speed, max_dd = self.config["max_detection_distance"], rf_cnt_total = self.config["rf_bs_count"], thz_cnt_total = self.config["thz_bs_count"])
                 id += 1
                 vehicle.randomize_behavior()
                 self.road.vehicles.append(vehicle)

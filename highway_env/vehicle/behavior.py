@@ -594,6 +594,8 @@ class IDMVehicleWithTelecom(IDMVehicle):
                 heading: float = 0,
                 speed: float = 0,
                 max_dd: float = 1000,   # 检测距离, 会返回该距离内的基站数量
+                rf_cnt_total: int = 20, 
+                thz_cnt_total: int = 100,
                 target_lane_index: int = None,
                 target_speed: float = None,
                 route: Route = None,
@@ -608,6 +610,8 @@ class IDMVehicleWithTelecom(IDMVehicle):
         self.id = id
         self.max_detection_distance = max_dd
         self.target_current_bs = target_current_bs # or 'initial bs'
+        self.rf_cnt_total = rf_cnt_total
+        self.thz_cnt_total = thz_cnt_total
 
     def get_top_3_bs_controller(self,bs_list):
         # print('bs_list',bs_list)
@@ -619,16 +623,38 @@ class IDMVehicleWithTelecom(IDMVehicle):
         # top3_sum = np.sum(bs_list[top3_indices])
         return count
     
+    # def to_dict(self, origin_vehicle: "Vehicle" = None, observe_intentions: bool = True) -> dict:
+    #     d = super().to_dict(origin_vehicle, observe_intentions)
+    #     # rf_cnt, thz_cnt 非被控车辆, 观测值为0
+    #     # rf_dist, thz_dist = self.road.get_distance(self.id)
+    #     # d['rf_cnt'] = np.sum(rf_dist <= self.max_detection_distance)
+    #     # d['thz_cnt'] = np.sum(thz_dist <= self.max_detection_distance)
+    #     performance = self.road.get_performance(self.id)
+    #     count = self.get_top_3_bs_controller(performance)
+    #     d['bs_cnt'] = count	
+    #     return d
+    
+    def get_count_above_threshold(self, data_rates, threshold=1e15):
+        return np.sum(data_rates > threshold)
+    
     def to_dict(self, origin_vehicle: "Vehicle" = None, observe_intentions: bool = True) -> dict:
         d = super().to_dict(origin_vehicle, observe_intentions)
-        # rf_cnt, thz_cnt 非被控车辆, 观测值为0
-        # rf_dist, thz_dist = self.road.get_distance(self.id)
-        # d['rf_cnt'] = np.sum(rf_dist <= self.max_detection_distance)
-        # d['thz_cnt'] = np.sum(thz_dist <= self.max_detection_distance)
+        # Assume self.road.get_performance() returns a concatenated matrix of performance data rates
         performance = self.road.get_performance(self.id)
-        count = self.get_top_3_bs_controller(performance)
-        d['bs_cnt'] = count	
+        # Split performance data into RF and THz parts
+        rf_performance = performance[:self.rf_cnt_total]
+        thz_performance = performance[self.rf_cnt_total:self.rf_cnt_total + self.thz_cnt_total]
+
+        # Get count of RF and THz base stations exceeding the threshold
+        rf_count = self.get_count_above_threshold(rf_performance)
+        thz_count = self.get_count_above_threshold(thz_performance)
+
+        # Update dictionary with RF and THz counts
+        d['rf_cnt'] = rf_count
+        d['thz_cnt'] = thz_count
+        
         return d
+
     def act(self, action: Union[dict, str] = None):
         if self.collecting_data:
             self.collect_data()
