@@ -193,7 +193,7 @@ class HighwayEnvBS(HighwayEnvFast):
     def default_config(cls) -> dict:
         conf = super().default_config()
         conf.update({
-            "obstacle_count": 20,
+            "obstacle_count": 0,
             # https://github.com/eleurent/highway-env/issues/35#issuecomment-1206427869
             # https://github.com/eleurent/highway-env/pull/352/files
             "action": {
@@ -286,7 +286,14 @@ class HighwayEnvBS(HighwayEnvFast):
         for others in other_per_controlled:
             vehicle = Vehicle.create_random(self.road, speed=25, lane_id=self.config["initial_lane_id"], spacing=self.config["ego_spacing"])
             vehicle = self.action_type.vehicle_class(
-                id, self.road, vehicle.position, vehicle.heading, vehicle.speed, max_dd = self.config["max_detection_distance"], rf_cnt_total = self.config["rf_bs_count"], thz_cnt_total = self.config["thz_bs_count"])
+                id = id, 
+                road = self.road, 
+                position = vehicle.position, 
+                heading = vehicle.heading, 
+                speed = vehicle.speed, 
+                # max_dd = self.config["max_detection_distance"], 
+                rf_cnt_total = self.config["rf_bs_count"], 
+                thz_cnt_total = self.config["thz_bs_count"])
             id += 1
             if self.config['controlled_vehicles']:
                 # vehicle_lane = np.random.choice(lanes)
@@ -305,7 +312,14 @@ class HighwayEnvBS(HighwayEnvFast):
             for _ in range(others):
                 vehicle = Vehicle.create_random(self.road, spacing=1/self.config["vehicles_density"])
                 vehicle = other_vehicles_type(
-                    id, self.road, vehicle.position, vehicle.heading, vehicle.speed, max_dd = self.config["max_detection_distance"], rf_cnt_total = self.config["rf_bs_count"], thz_cnt_total = self.config["thz_bs_count"])
+                    id = id, 
+                    road = self.road,
+                    position = vehicle.position, 
+                    heading = vehicle.heading, 
+                    speed = vehicle.speed, 
+                    # max_dd = self.config["max_detection_distance"], 
+                    rf_cnt_total = self.config["rf_bs_count"], 
+                    thz_cnt_total = self.config["thz_bs_count"])
                 id += 1
                 vehicle.randomize_behavior()
                 self.road.vehicles.append(vehicle)

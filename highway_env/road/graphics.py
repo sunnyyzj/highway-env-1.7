@@ -34,7 +34,7 @@ class WorldSurface(pygame.Surface):
         self, size: Tuple[int, int], flags: object, surf: pygame.SurfaceType
     ) -> None:
         super().__init__(size, flags, surf)
-        self.origin = np.array([0, 0])
+        self.origin = np.array([-30, -30]) #[0, 0]
         self.scaling = self.INITIAL_SCALING
         self.centering_position = self.INITIAL_CENTERING
 
@@ -48,6 +48,23 @@ class WorldSurface(pygame.Surface):
         return int(length * self.scaling)
 
     def pos2pix(self, x: float, y: float) -> Tuple[int, int]:
+        # """
+        #     Convert world coordinates [m] into pixel positions [px] on the surface.
+
+        #     Adjusts for any view requirements, such as focusing on specific y-values like y = -1.
+
+        #     :param x: x world coordinate [m]
+        #     :param y: y world coordinate [m]
+        #     :return: the coordinates of the corresponding pixel [px]
+        # """
+        #     # Adjust origin based on a condition or external setting
+        #     # This can be dynamically updated elsewhere in your viewer settings
+        # focus_y = min(self.origin[1], -25)  # Ensuring we can focus on y = -1 if needed
+        # center_x = self.get_width()/2 #* self.centering_position[0]
+        # center_y = self.get_height()/2 # * self.centering_position[1]
+        # pixel_x = center_x + (x - self.origin[0]) * self.scaling
+        # pixel_y = center_y - (y - focus_y) * self.scaling
+        # return int(pixel_x), int(pixel_y)
         """
         Convert two world coordinates [m] into a position in the surface [px]
 
@@ -365,7 +382,7 @@ class RoadObjectGraphics:
         object_: "RoadObject",
         surface: WorldSurface,
         transparent: bool = False,
-        offscreen: bool = False, #False
+        offscreen: bool = True, #False
     ):
         """
         Display a road objects on a pygame surface.
@@ -398,31 +415,54 @@ class RoadObjectGraphics:
         # Centered rotation
         position = surface.pos2pix(o.position[0], o.position[1])
         cls.blit_rotate(surface, s, position, np.rad2deg(-h))
-
         # After the object has been blitted to the main surface
-        if not offscreen:
-            # Initialize Pygame font if not already initialized
-            if not pygame.font.get_init():
-                pygame.font.init()
+                # if not offscreen:
+        # Initialize Pygame font if not already initialized
+        if not pygame.font.get_init():
+            pygame.font.init()
 
-            # Load a font (default system font, size 14)å
-            font = pygame.font.Font(None, 14)
-            # Create a text surface with the OID
-            if str(o.__class__.__name__) == 'RF_BS':
-                text = 'RBS'
-            elif str(o.__class__.__name__) == 'THz_BS':
-                text = 'TBS'
-            else:
-                text = str(o.__class__.__name__)
-            # text = str(o.__class__.__name__) + str(position[0])
-            oid_text = font.render(text, True, cls.BLACK)
-            # Get the size of the text
-            text_width, text_height = oid_text.get_size()
-            # Calculate position for the text, centered over the object
-            text_pos = (position[0] - text_width // 2, position[1] - surface.pix(o.LENGTH / 2) - text_height)
+        # Load a font (default system font, size 14)
+        font = pygame.font.Font(None, 14)
+        # Create a text surface with the OID
+        if str(o.__class__.__name__) == 'RF_BS':
+            text = 'RBS'
+        elif str(o.__class__.__name__) == 'THz_BS':
+            text = 'TBS'
+        else:
+            text = str(o.__class__.__name__)
+        # text = str(o.__class__.__name__) + str(position[0])
+        oid_text = font.render(text, True, cls.BLACK)
+        # Get the size of the text
+        text_width, text_height = oid_text.get_size()
+        # Calculate position for the text, centered over the object
+        text_pos = (position[0] - text_width // 2, position[1] - surface.pix(o.LENGTH / 2) - text_height)
 
-            # Blit the text surface onto the main surface
-            surface.blit(oid_text, text_pos)
+        # Blit the text surface onto the main surface
+        surface.blit(oid_text, text_pos)
+        
+        # if not offscreen:
+        #     # Initialize Pygame font if not already initialized
+        #     if not pygame.font.get_init():
+        #         pygame.font.init()
+
+        #     # Load a font (default system font, size 14)å
+        #     font = pygame.font.Font(None, 14)
+        #     # Create a text surface with the OID
+        #     if str(o.__class__.__name__) == 'RF_BS':
+        #         text = 'RBS'
+        #     elif str(o.__class__.__name__) == 'THz_BS':
+        #         text = 'TBS'
+        #     else:
+        #         text = str(o.__class__.__name__)
+        #     # text = str(o.__class__.__name__) + str(position[0])
+        #     oid_text = font.render(text, True, cls.BLACK)
+        #     # Get the size of the text
+        #     text_width, text_height = oid_text.get_size()
+        #     # Calculate position for the text, centered over the object
+        #     text_pos = (position[0] - text_width // 2, position[1] - surface.pix(o.LENGTH / 2) - text_height)
+
+        #     # Blit the text surface onto the main surface
+        #     surface.blit(oid_text, text_pos)
 
 
     @staticmethod

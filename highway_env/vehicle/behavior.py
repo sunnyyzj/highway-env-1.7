@@ -593,22 +593,32 @@ class IDMVehicleWithTelecom(IDMVehicle):
                 position: Vector,
                 heading: float = 0,
                 speed: float = 0,
-                max_dd: float = 1000,   # 检测距离, 会返回该距离内的基站数量
-                rf_cnt_total: int = 20, 
-                thz_cnt_total: int = 100,
+                # max_dd: float = 1000,   # 检测距离, 会返回该距离内的基站数量
                 target_lane_index: int = None,
                 target_speed: float = None,
                 route: Route = None,
                 enable_lane_change: bool = True,
                 timer: float = None,
                 data: dict = None,
-                target_current_bs: int = None):
-        super().__init__(road, position, heading, speed, target_lane_index, target_speed, route,
-                        enable_lane_change, timer)
+                target_current_bs: int = None,
+                rf_cnt_total: int = 20, 
+                thz_cnt_total: int = 100):
+        super().__init__(road, 
+                         position, 
+                         heading, 
+                         speed, 
+                         target_lane_index, 
+                         target_speed, 
+                         route,
+                         enable_lane_change,
+                         timer,
+                        #  rf_cnt_total, 
+                        #  thz_cnt_total, 
+                         )
         self.data = data if data is not None else {}
         self.collecting_data = True
         self.id = id
-        self.max_detection_distance = max_dd
+        # self.max_detection_distance = max_dd
         self.target_current_bs = target_current_bs # or 'initial bs'
         self.rf_cnt_total = rf_cnt_total
         self.thz_cnt_total = thz_cnt_total

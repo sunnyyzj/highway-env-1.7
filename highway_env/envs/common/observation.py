@@ -410,6 +410,20 @@ class KinematicTeleObservation(ObservationType):
         self.clip = clip
         self.see_behind = see_behind
         self.observe_intentions = observe_intentions
+        # centering_position: Optional[List[float]] = None,
+        viewer_config = env.config.copy()
+        viewer_config.update(
+            {
+                "offscreen_rendering": True,
+                # "screen_width": 100,
+                # "screen_height": 300,
+                # "scaling": scaling or viewer_config["scaling"],
+                # "centering_position": centering_position
+                # or 
+                # viewer_config["centering_position"],
+            }
+        )
+        self.viewer = EnvViewer(env, config=viewer_config)
     def space(self) -> spaces.Space:
         return spaces.Box(shape=(self.vehicles_count, len(self.features)), low=-np.inf, high=np.inf, dtype=np.float32)
     def normalize_obs(self, df: pd.DataFrame) -> pd.DataFrame:
