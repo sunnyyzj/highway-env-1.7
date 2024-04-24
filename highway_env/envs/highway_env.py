@@ -241,14 +241,14 @@ class HighwayEnvBS(HighwayEnvFast):
                                                     self.config['road_length'],
                                                     speed_limit=30)
         # RF bss的创建和管理移到了BSRoad中
-        self.road = BSRoad(self.config['rf_bs_count'],
-                           self.config['thz_bs_count'],
-                           self.config['rf_bs_max_connections'],
-                           self.config['thz_bs_max_connections'],
-                           self.config["lanes_count"],
-                           self.config['road_start'],
-                           self.config['road_length'],
-                           self.config["duration"] * sum(self.config["reward_speed_range"]) / len(self.config["reward_speed_range"]), # 40 * (20+30)/2 = 1000 time steps* speed
+        self.road = BSRoad(rf_bs_count = self.config['rf_bs_count'],
+                           thz_bs_count = self.config['thz_bs_count'],
+                           rf_bs_max_connections = self.config['rf_bs_max_connections'],
+                           thz_bs_max_connections = self.config['thz_bs_max_connections'],
+                           lane = self.config["lanes_count"],
+                           start = self.config['road_start'],
+                           length = self.config['road_length'],
+                           bs_length = self.config["duration"] * sum(self.config["reward_speed_range"]) / len(self.config["reward_speed_range"]), # 40 * (20+30)/2 = 1000 time steps* speed
                            network=network,
                            np_random=self.np_random,
                            record_history=self.config["show_trajectories"])
