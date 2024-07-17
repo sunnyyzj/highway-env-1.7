@@ -246,7 +246,7 @@ class KinematicObservation(ObservationType):
 
 class KinematicTeleObservation(ObservationType):
     """Observe the kinematics of nearby vehicles."""
-    FEATURES: List[str] = ["presence", "x", "y", "vx", "vy", 'rf_cnt', 'thz_cnt'] #["presence", "x", "y", "vx", "vy"]
+    FEATURES: List[str] = ["presence", "x", "y", "vx", "vy", "bs_cnt"] #["presence", "x", "y", "vx", "vy",'rf_cnt', 'thz_cnt']
     def __init__(self, env: 'AbstractEnv',
                  features: List[str] = None,
                  vehicles_count: int = 5,
@@ -257,6 +257,7 @@ class KinematicTeleObservation(ObservationType):
                  clip: bool = True,
                  see_behind: bool = False,
                  observe_intentions: bool = False,
+                 include_obstacles: bool = True,
                  **kwargs: dict) -> None:
         """
         :param env: The environment to observe
@@ -279,6 +280,8 @@ class KinematicTeleObservation(ObservationType):
         self.clip = clip
         self.see_behind = see_behind
         self.observe_intentions = observe_intentions
+        self.include_obstacles = include_obstacles
+        
     def space(self) -> spaces.Space:
         return spaces.Box(shape=(self.vehicles_count, len(self.features)), low=-np.inf, high=np.inf, dtype=np.float32)
     def normalize_obs(self, df: pd.DataFrame) -> pd.DataFrame:

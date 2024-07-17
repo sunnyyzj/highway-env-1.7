@@ -278,18 +278,20 @@ def invQfunc(x):
 def QoS_v(SINR_matrix):
     return 1 - 1/(np.square(1+SINR_matrix))
 
-L_B = 1
-def Qos_epsilon_c(SINR_matrix,W):
-    D_t = L_B/W
-    # W = PR PT
-    b = D_t * SINR_matrix
-    V = QoS_v(SINR_matrix)
-    # epsilon_c = qfunc(np.sqrt(D_t*W/V) *(np.log(1 + SINR_matrix) - (np.log(2) * b )/(D_t * W) ))
-    epsilon_c = qfunc(np.sqrt(L_B/V) *(np.log2(1 + SINR_matrix) - (np.log(2) * b )/(L_B) ))
-    # epsilon_c.where(epsilon_c >= 0.8, 0.8, epsilon_c)
-    # epsilon_c = np.where(epsilon_c >= 0.8, 0.8, epsilon_c)
-    # epsilon_c =epsilon_c/10
-    return epsilon_c
+L_B = 1e3
+# def Qos_epsilon_c(SINR_matrix,W):
+#     return 0.1
+
+#     D_t = L_B/W
+#     # W = PR PT
+#     b = D_t * SINR_matrix
+#     V = QoS_v(SINR_matrix)
+#     # epsilon_c = qfunc(np.sqrt(D_t*W/V) *(np.log(1 + SINR_matrix) - (np.log(2) * b )/(D_t * W) ))
+#     epsilon_c = qfunc(np.sqrt(L_B/V) *(np.log2(1 + SINR_matrix) - (np.log(2) * b )/(L_B) ))
+#     # epsilon_c.where(epsilon_c >= 0.8, 0.8, epsilon_c)
+#     # epsilon_c = np.where(epsilon_c >= 0.8, 0.8, epsilon_c)
+#     # epsilon_c =epsilon_c/10
+#     return epsilon_c
 
 def rf_Qos_matrix(SINR_matrix):
     # NU,NRF = rf_dr_matrix.shape # row is vehicle, column is rf bs
@@ -297,10 +299,10 @@ def rf_Qos_matrix(SINR_matrix):
     W = Wr
     V = QoS_v(SINR_matrix)
     # print('V_rf\n',V)
-    epsilon_c = Qos_epsilon_c(SINR_matrix,Wr)
-    print('epsilon_c_rf\n',epsilon_c)
-    R = ( W / np.log(2)) * (np.log2(1 + SINR_matrix) - np.sqrt(V / L_B) * invQfunc(epsilon_c) )
-    print('qos_dr_rf\n',R)
+    # epsilon_c = Qos_epsilon_c(SINR_matrix,Wr)
+    # print('epsilon_c_rf\n',epsilon_c)
+    R = ( W / np.log(2)) * (np.log(1 + SINR_matrix) - np.sqrt(V / L_B) * invQfunc(0.1) )#epsilon_c = 0.1
+    # print('qos_dr_rf\n',R)
     return R 
 
 def thz_Qos_matrix(SINR_matrix):
@@ -309,10 +311,11 @@ def thz_Qos_matrix(SINR_matrix):
     W = Wt
     V = QoS_v(SINR_matrix)
     # print('V_thz\n',V)
-    epsilon_c = Qos_epsilon_c(SINR_matrix,Wt)
-    print('epsilon_c_thz\n',epsilon_c)
-    R = ( W / np.log(2)) * (np.log2(1 + SINR_matrix) - np.sqrt(V / L_B) * invQfunc(epsilon_c) )
-    print('qos_dr_thz\n',R)
+    # epsilon_c = Qos_epsilon_c(SINR_matrix,Wt)
+    # print('epsilon_c_thz\n',epsilon_c)
+    R = ( W / np.log(2)) * (np.log(1 + SINR_matrix) - np.sqrt(V / L_B) * invQfunc(0.1) )
+    # print('qos_dr_thz\n',R)
+    R[np.isnan(R)] = 0
     return R 
 
 # def main():

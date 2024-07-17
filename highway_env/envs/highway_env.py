@@ -1,6 +1,7 @@
 from typing import Dict, Text
 
 import numpy as np
+import math
 
 from highway_env import utils
 from highway_env.envs.common.abstract import AbstractEnv
@@ -52,7 +53,7 @@ class HighwayEnv(AbstractEnv):
             "high_speed_reward": 0.4,  # The reward received when driving at full speed, linearly mapped to zero for
                                        # lower speeds according to config["reward_speed_range"].
             "lane_change_reward": 0,   # The reward received at each lane change action.
-            "reward_speed_range": [15, 25],#[20, 30]
+            "reward_speed_range": [20, 30],#[20, 30]
             "normalize_reward": True,
             "offroad_terminal": False
         })
@@ -145,6 +146,12 @@ class HighwayEnvFast(HighwayEnv):
             "vehicles_count": 20,
             "duration": 30,  # [s]
             "ego_spacing": 1.5,
+            "observation": {
+                    # "type": "KinematicsTele",
+                    # "features": ["presence", "x", "y", "vx", "vy","bs_cnt" ], #'rf_cnt', 'thz_cnt'
+                'type':'Kinematics',
+                'vehicles_count': 3,
+            },
         })
         return cfg
 
@@ -187,7 +194,7 @@ class HighwayEnvBS(HighwayEnvFast):
             "road_length": 10000,
             "observation": {
                     "type": "KinematicsTele",
-                    "features": ["presence", "x", "y", "vx", "vy", 'rf_cnt', 'thz_cnt'],
+                    "features": ["presence", "x", "y", "vx", "vy","bs_cnt" ], #'rf_cnt', 'thz_cnt'
                 'vehicles_count': 5,
             },
             "max_detection_distance": 1000,  # 观测距离
@@ -365,7 +372,13 @@ class HighwayEnvBS(HighwayEnvFast):
         reward = tran_reward + tele_reward
         # print('reward *=', reward)
         return reward  #,reward_tr,reward_te
-
+    
+    def _check_nan(number):
+        if not math.isnan(number):
+            return number
+        else:
+            return 0
+        
     def _agent_rewards(self, action: int, vehicle: Vehicle) -> Dict[Text, float]:
         """Per-agent per-objective reward signal."""
         neighbours = self.road.network.all_side_lanes(vehicle.lane_index)
@@ -387,10 +400,14 @@ class HighwayEnvBS(HighwayEnvFast):
             if self.steps > 2: # 3
                 result_rf *=  1 - (vehicle.target_ho/(self.steps))
             # print('ho_dr',result_rf)
-            result_rf *= 1e-8
-            # print('coefficient_dr',result_rf)
-            # result_rf = utils.lmap(result_rf,[0, 8]],[0, 1])#1e8
-            # result_rf = utils.lmap(result_rf,[0, self.config["tele_reward_threshold"]],[0, 2])#1e8
+            # result_rf *= 1e-8  #1e-8 2e-9
+            try:
+                result_rf *= 1e-8 
+            except:
+                result_rf *= 0 
+            
+            result_rf = HighwayEnvBS._check_nan(result_rf)
+            # result_rf = utils.lmap(result_rf,[0, 1e17],[0, 2])#1e8
             # print('normalize_dr',result_rf)
             # result_rf = "{:.2f}".format(result_rf)
             # print('final result_rf',result_rf)

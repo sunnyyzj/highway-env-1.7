@@ -455,11 +455,14 @@ class BSRoad(Road):
         dr_matrix_rf,interf_matrix,SINR_rf,SNR_rf = rf_sinr_matrix(self.dist[:, :self.rf_bs_count])
         dr_matrix_thz,interf_matrix,SINR_thz,SNR_thz = thz_sinr_matrix(self.dist[:, self.rf_bs_count:])
         #with QoS
-        rf_dr = rf_Qos_matrix(SINR_rf)
-        thz_dr = thz_Qos_matrix(SINR_thz)
+        # rf_dr = rf_Qos_matrix(SINR_rf)
+        # thz_dr = thz_Qos_matrix(SINR_thz)
 
-        # rf_dr = dr_matrix_rf
-        # thz_dr = dr_matrix_thz
+        # rf_dr = rf_Qos_matrix(SNR_rf)
+        # thz_dr = thz_Qos_matrix(SNR_thz)
+
+        rf_dr = dr_matrix_rf
+        thz_dr = dr_matrix_thz
         # print('rf_dr shape',rf_dr)
         # print('thz_dr shape',thz_dr)
         # print('rf_dr_shape',rf_dr.shape)
@@ -488,6 +491,9 @@ class BSRoad(Road):
     
     def get_total_dr(self):
         return self.total_dr
+    
+    def get_performance(self, vid):
+        return self.get_performance_table()[vid]
     
     def get_performance_table(self):
         total_dr_with_threshold = self.total_dr / (self.bs_conn + 1e-8)
