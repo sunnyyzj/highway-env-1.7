@@ -496,7 +496,7 @@ class IDMVehicleWithTelecom(IDMVehicle):
                 position: Vector,
                 heading: float = 0,
                 speed: float = 0,
-                max_dd: float = 1000,   # 检测距离, 会返回该距离内的基站数量
+                max_dd: float = 50,   # 检测距离, 会返回该距离内的基站数量
                 target_lane_index: int = None,
                 target_speed: float = None,
                 route: Route = None,

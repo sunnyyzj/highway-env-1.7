@@ -213,7 +213,7 @@ class MDPVehicle(ControlledVehicle):
 
     """A controlled vehicle with a specified discrete range of allowed target speeds."""
     # DEFAULT_TARGET_SPEEDS = np.linspace (10, 20, 3) (15, 25, 3) (20, 30, 3) (25, 35, 3) 
-    DEFAULT_TARGET_SPEEDS = np.linspace(15, 25, 3)
+    DEFAULT_TARGET_SPEEDS = np.linspace(20, 30, 3)
 
     def __init__(self,
                  road: Road,
@@ -332,7 +332,7 @@ class MyMDPVehicle(MDPVehicle):
                  position: List[float],		
                  heading: float = 0,		
                  speed: float = 0,		
-                 max_dd: float = 100,   # 检测距离, 会返回该距离内的基站数量		
+                 max_dd: float = 50,   # 检测距离, 会返回该距离内的基站数量		
                  target_lane_index: Optional[LaneIndex] = None,		
                  target_speed: Optional[float] = None,		
                  target_speeds: Optional[Vector] = None,		
