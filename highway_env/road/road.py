@@ -460,8 +460,8 @@ class BSRoad(Road):
 
         # rf_dr = dr_matrix_rf
         # thz_dr = dr_matrix_thz
-        # print('rf_dr shape',rf_dr)
-        # print('thz_dr shape',thz_dr)
+        # print('rf_dr ',rf_dr)
+        # print('thz_dr ',thz_dr)
         # print('rf_dr_shape',rf_dr.shape)
         # print('thz_dr_shape',thz_dr.shape)
         # print('\nrf_dr',rf_dr)
