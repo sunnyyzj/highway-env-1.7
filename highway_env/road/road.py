@@ -455,8 +455,12 @@ class BSRoad(Road):
         dr_matrix_rf,interf_matrix,SINR_rf,SNR_rf = rf_sinr_matrix(self.dist[:, :self.rf_bs_count])
         dr_matrix_thz,interf_matrix,SINR_thz,SNR_thz = thz_sinr_matrix(self.dist[:, self.rf_bs_count:])
         #with QoS
-        rf_dr = rf_Qos_matrix(SINR_rf)
-        thz_dr = thz_Qos_matrix(SINR_thz)
+        # rf_dr = rf_Qos_matrix(SINR_rf)
+        # thz_dr = thz_Qos_matrix(SINR_thz)
+
+        #without QoS
+        rf_dr = dr_matrix_rf.T
+        thz_dr = dr_matrix_thz.T
 
         # rf_dr = dr_matrix_rf
         # thz_dr = dr_matrix_thz
