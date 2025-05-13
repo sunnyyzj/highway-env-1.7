@@ -7,7 +7,7 @@ import numpy as np
 
 from highway_env.road.lane import AbstractLane, LineType, StraightLane, lane_from_config
 from highway_env.vehicle.objects import Landmark
-
+from highway_env.sinr import a2c_link, haps_datarate_matrix
 
 if TYPE_CHECKING:
     from highway_env.vehicle import kinematics, objects
@@ -514,3 +514,113 @@ class Road:
 
     def __repr__(self):
         return self.vehicles.__repr__()
+
+
+class BSRoad(Road):
+    def __init__(self, 
+                 gbs_count: int = 5,
+                 haps_count: int = 1,
+                 gbs_max_connections: int = 10,
+                 haps_max_connections: int = 100,
+                 lane: int = 4,
+                 start: float = 0, 
+                 length: float = 10000,
+                 network: RoadNetwork = None, 
+                 vehicles: list = None, 
+                 road_objects: list = None, 
+                 np_random: np.random.RandomState = None, 
+                 record_history: bool = False
+                 ) -> None:
+        super().__init__(network, vehicles, road_objects, np_random, record_history)
+        self.gbs_count = gbs_count
+        self.haps_count = haps_count
+
+        # GBS positions (random in 1000x1000m area, z=0)
+        self.gbs_pos = np.zeros((gbs_count, 2))
+        self.gbs_pos[:, 0] = np.random.random(gbs_count) * 1000
+        self.gbs_pos[:, 1] = np.random.randint(-500, 500, gbs_count)
+        self.gbs_pos_3d = np.hstack((self.gbs_pos, np.zeros((gbs_count, 1))))
+
+        # HAPS position (fixed at center, high altitude)
+        self.haps_pos_3d = np.array([[500, 0, 20000]])  # shape (1,3)
+
+        # Connection counters
+        self.gbs_conn = np.zeros(gbs_count)
+        self.haps_conn = np.zeros(haps_count)
+        self.gbs_conn_max = np.ones(gbs_count) * gbs_max_connections
+        self.haps_conn_max = np.ones(haps_count) * haps_max_connections
+
+        # Distance and rate tables
+        self.dist_gbs = np.zeros(0)
+        self.dist_haps = np.zeros(0)
+        self.rate_gbs = np.zeros(0)
+        self.rate_haps = np.zeros(0)
+
+        self._set_bs_position(lane, start, length)  # for compatibility
+
+    def _set_bs_position(self, lane, start, length):
+        # Already handled in __init__, keep for compatibility
+        pass
+
+    def update(self):
+        # Get UAV positions (assume all UAVs at 100m altitude if not specified)
+        vehicles_pos = np.array([v.position for v in self.vehicles])
+        if vehicles_pos.shape[1] == 2:
+            vehicles_pos_3d = np.concatenate((vehicles_pos, np.ones((len(vehicles_pos), 1)) * 100), axis=1)
+        else:
+            vehicles_pos_3d = vehicles_pos
+
+        # --- GBS ---
+        dist_2d_gbs = np.linalg.norm(self.gbs_pos[None, :, :] - vehicles_pos[:, None, :2], axis=-1)  # (N_uav, N_gbs)
+        dist_3d_gbs = np.linalg.norm(self.gbs_pos_3d[None, :, :] - vehicles_pos_3d[:, None, :], axis=-1)
+        # Use your new a2c_link for GBS
+        rate_gbs = a2c_link(dist_2d_gbs, dist_3d_gbs, vehicles_pos_3d)
+        self.dist_gbs = dist_3d_gbs
+        self.rate_gbs = rate_gbs
+
+        # --- HAPS ---
+        dist_2d_haps = np.linalg.norm(self.haps_pos_3d[0, :2] - vehicles_pos[:, :2], axis=-1, keepdims=True)  # (N_uav, 1)
+        dist_3d_haps = np.linalg.norm(self.haps_pos_3d[0, :] - vehicles_pos_3d, axis=-1, keepdims=True)       # (N_uav, 1)
+        # Use your new haps_datarate_matrix for HAPS
+        N_uav = vehicles_pos_3d.shape[0]
+        b_ratio = np.ones((N_uav, 1)) / N_uav  # equally divide bandwidth
+        p_ratio = np.ones((N_uav, 1)) / N_uav  # equally divide power
+        rate_haps = haps_datarate_matrix(dist_3d_haps, b_ratio, p_ratio)
+        self.dist_haps = dist_3d_haps
+        self.rate_haps = rate_haps
+
+    def get_distance(self, vid):
+        # Return (gbs_distances, haps_distance)
+        return self.dist_gbs[vid, :], self.dist_haps[vid, :]
+
+    def get_rate(self, vid):
+        # Return (gbs_rates, haps_rate)
+        return self.rate_gbs[vid, :], self.rate_haps[vid, :]
+
+    def get_conn(self):
+        return self.gbs_conn, self.haps_conn
+
+    def get_conn_rest(self):
+        return self.gbs_conn_max - self.gbs_conn, self.haps_conn_max - self.haps_conn
+
+    def get_performance_table(self):
+        # Returns both GBS and HAPS rates
+        return {'gbs': self.rate_gbs, 'haps': self.rate_haps}
+
+    def new_connect(self, old, new, is_haps=False):
+        # Update connection counters
+        if old is not None:
+            if is_haps:
+                self.haps_conn[old] -= 1
+            else:
+                self.gbs_conn[old] -= 1
+        if is_haps:
+            self.haps_conn[new] += 1
+        else:
+            self.gbs_conn[new] += 1
+
+    def kind_of_bs(self, bid):
+        if bid < self.gbs_count:
+            return 'gbs'
+        else:
+            return 'haps'

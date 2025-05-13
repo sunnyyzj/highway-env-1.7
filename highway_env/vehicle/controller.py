@@ -398,3 +398,103 @@ class MDPVehicle(ControlledVehicle):
                 if (t % int(trajectory_timestep / dt)) == 0:
                     states.append(copy.deepcopy(v))
         return states
+
+class MyMDPVehicle(MDPVehicle):		
+    def __init__(self,		
+                 id: int,		
+                 road: Road,		
+                 position: List[float],		
+                 heading: float = 0,		
+                 speed: float = 0,		
+                 max_dd: float = 100,   # Detection distance for BSs		
+                 target_lane_index: Optional[LaneIndex] = None,		
+                 target_speed: Optional[float] = None,		
+                 target_speeds: Optional[Vector] = None,		
+                 target_current_bs: Optional[int] = None,		
+                 target_ho: int = 0,		
+                 target_available_gbs: int = 0,		
+                 target_available_haps: int = 0,		
+                 route: Optional[Route] = None) -> None:		
+        self.target_current_bs = target_current_bs		
+        self.max_detection_distance = max_dd		
+        self.target_ho = target_ho		
+        self.id = id		
+        self.target_available_gbs = target_available_gbs		
+        self.target_available_haps = target_available_haps		
+        super().__init__(road, position, heading, speed, target_lane_index,		
+                         target_speed, target_speeds, route)		
+            
+    def to_dict(self, origin_vehicle: "Vehicle" = None, observe_intentions: bool = True) -> dict:		
+        d = super().to_dict(origin_vehicle, observe_intentions)		
+        # gbs_cnt, haps_cnt		
+        gbs_dist, haps_dist = self.road.get_distance(self.id)		
+        d['gbs_cnt'] = np.sum(gbs_dist <= self.max_detection_distance)		
+        d['haps_cnt'] = np.sum(haps_dist <= self.max_detection_distance)		
+        return d		
+
+    def act(self, action = None) -> None:		
+        if action is None:		
+            super().act()		
+            self.action["tele_action"] = self.target_current_bs		
+            return		
+        action, action_tele = action		
+        # Transportation action		
+        super().act(action)		
+        # Communication action		
+        old = self.target_current_bs		
+        new = old		
+        if action_tele == "t1":  # Max datarate control		
+            new = self.t1_dr_control()		
+        elif action_tele == "t2":		
+            new = self.t2_with_threshold_control()		
+        elif action_tele == "t3":		
+            new = self.t3_with_ho_threshold_control(old)		
+        if old is not None and old != new:		
+            self.target_ho += 1		
+        self.road.new_connect(old, new)	
+        self.target_current_bs = new	
+        self.action["tele_action"] = self.target_current_bs	
+
+    def t1_dr_control(self):	
+        '''	
+        Connect to the BS (GBS or HAPS) with the maximum data rate under capacity constraints.	
+        '''	
+        vid = self.id	
+        aim_bs = self.road.get_total_dr()[vid]	
+        rest = self.road.get_conn_rest()	
+        aim_bs_mm = 10 + aim_bs.max() - aim_bs.min()	
+        vacant = aim_bs - (rest <= 0) * aim_bs_mm	
+        bid = np.argmax(vacant)	
+        return bid	
+
+    def t2_with_threshold_control(self):	
+        '''	
+        Connect to the BS with the highest data rate per available connection.	
+        '''	
+        vid = self.id	
+        aim_bs = self.road.get_total_dr()[vid]	
+        rest = self.road.get_conn()	
+        aim_bs = aim_bs / (rest + 1e-8)	
+        aim_bs_mm = 10 + aim_bs.max() - aim_bs.min()	
+        vacant = aim_bs - (rest <= 0) * aim_bs_mm	
+        bid = np.argmax(vacant)	
+        return bid	
+
+    def t3_with_ho_threshold_control(self, current_bs):	
+        '''	
+        Connect to the BS with the highest weighted data rate, penalizing handover.	
+        '''	
+        vid = self.id	
+        aim_bs = self.road.get_total_dr()[vid]	
+        rest = self.road.get_conn()	
+        aim_bs = aim_bs / (rest + 1e-8)	
+        n_gbs = self.road.gbs_count	
+        n_haps = self.road.haps_count	
+        coef = np.array([0.8] * n_gbs + [0.5] * n_haps)	
+        if current_bs is not None:	
+            coef[current_bs] = 1	
+        aim_bs = coef * aim_bs	
+        aim_bs_mm = 10 + aim_bs.max() - aim_bs.min()	
+        vacant = aim_bs - (rest <= 0) * aim_bs_mm	
+        bid = np.argmax(vacant)	
+        return bid

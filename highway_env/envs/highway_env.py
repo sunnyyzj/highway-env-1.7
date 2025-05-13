@@ -10,6 +10,12 @@ from highway_env.utils import near_split
 from highway_env.vehicle.controller import ControlledVehicle
 from highway_env.vehicle.kinematics import Vehicle
 
+from highway_env.vehicle.objects import Obstacle
+from highway_env.vehicle.objects import RF_BS, THz_BS
+
+from ..sinr import *
+# from ..Shared import *
+import pandas as pd
 
 Observation = np.ndarray
 
@@ -175,3 +181,215 @@ class HighwayEnvFast(HighwayEnv):
         for vehicle in self.road.vehicles:
             if vehicle not in self.controlled_vehicles:
                 vehicle.check_collisions = False
+
+
+import numpy as np
+from typing import Dict, Text
+from highway_env.envs.common.action import Action
+from highway_env.road.road import BSRoad, RoadNetwork
+from highway_env.vehicle.controller import ControlledVehicle
+from highway_env.vehicle.kinematics import Vehicle
+from highway_env.vehicle.objects import Obstacle
+from highway_env.utils import near_split
+from highway_env import utils
+
+class HighwayEnvBS(HighwayEnvFast):
+    """
+    Highway environment with handover-aware communication datarate and transportation reward.
+    """
+
+    def __init__(self, config: dict = None) -> None:
+        super().__init__(config)
+
+    @classmethod
+    def default_config(cls) -> dict:
+        conf = super().default_config()
+        conf.update({
+            "obstacle_count": 20,
+            "action": {
+                "type": "DiscreteDualObjectMetaAction",
+            },
+            "termination_agg_fn": 'any',
+            'gbs_count': 5,  # Only GBS
+            'haps_count': 1, # Only HAPS
+            'gbs_max_connections': 5,
+            'haps_max_connections': 100,
+            "tele_reward": 4.5 / (10 ** 6.5),
+            "tele_reward_threshold": 4.5 * (10 ** 6.5),
+            "ho_reward": -5,
+            "normalize_reward": True,
+            "other_vehicles_type": "highway_env.vehicle.behavior.IDMVehicleWithTelecom",
+            "lanes_count": 3,
+            "road_start": 0,
+            "road_length": 10000,
+            "observation": {
+                "type": "KinematicsTele",
+                "features": ["presence", "x", "y", "vx", "vy", 'gbs_cnt', 'haps_cnt'],
+                'vehicles_count': 5,
+            },
+            "max_detection_distance": 1000,
+        })
+        return conf
+
+    def _reset(self) -> None:
+        self._create_road()
+        self._create_vehicles()
+        self.road.update()
+
+    def _create_road(self) -> None:
+        network = RoadNetwork.straight_road_network(
+            self.config["lanes_count"],
+            self.config['road_start'],
+            self.config['road_length'],
+            speed_limit=30
+        )
+        self.road = BSRoad(
+            gbs_count=self.config['gbs_count'],
+            haps_count=self.config['haps_count'],
+            gbs_max_connections=self.config['gbs_max_connections'],
+            haps_max_connections=self.config['haps_max_connections'],
+            lane=self.config["lanes_count"],
+            start=self.config['road_start'],
+            length=self.config['road_length'],
+            network=network,
+            np_random=self.np_random,
+            record_history=self.config.get("show_trajectories", False)
+        )
+        for _ in range(self.config['obstacle_count']):
+            obstacle_lane = np.random.choice([0, 8])
+            obstacle_dist = np.random.randint(300, 10000)
+            self.road.objects.append(Obstacle(self.road, [obstacle_dist, obstacle_lane]))
+
+    def _create_vehicles(self) -> None:
+        other_vehicles_type = utils.class_from_path(self.config["other_vehicles_type"])
+        other_per_controlled = near_split(self.config["vehicles_count"], num_bins=self.config["controlled_vehicles"])
+
+        self.controlled_vehicles = []
+        vehicle_dist = 0.0
+        id = 0
+        for others in other_per_controlled:
+            vehicle = Vehicle.create_random(
+                self.road, speed=25, lane_id=self.config["initial_lane_id"], spacing=self.config["ego_spacing"]
+            )
+            vehicle = self.action_type.vehicle_class(
+                id, self.road, vehicle.position, vehicle.heading, vehicle.speed, max_dd=self.config["max_detection_distance"]
+            )
+            id += 1
+            if self.config['controlled_vehicles']:
+                lanes = [4 * lane for lane in range(self.config["lanes_count"])]
+                vehicle_lane = np.random.choice(lanes)
+                vehicle_dist += 25
+                vehicle.position = np.array([vehicle_dist, vehicle_lane])
+                self.controlled_vehicles.append(vehicle)
+                self.road.vehicles.append(vehicle)
+            else:
+                self.controlled_vehicles.append(vehicle)
+            for _ in range(others):
+                vehicle = Vehicle.create_random(self.road, spacing=1/self.config["vehicles_density"])
+                vehicle = other_vehicles_type(
+                    id, self.road, vehicle.position, vehicle.heading, vehicle.speed, max_dd=self.config["max_detection_distance"]
+                )
+                id += 1
+                vehicle.randomize_behavior()
+                self.road.vehicles.append(vehicle)
+
+    def _info(self, obs: np.ndarray, action: int) -> dict:
+        info = super()._info(obs, action)
+        info['other_vehicle_collision'] = sum(
+            vehicle.crashed for vehicle in self.road.vehicles if vehicle not in self.controlled_vehicles
+        )
+        info['agents_ho_prob'] = tuple(self.get_ho(action, vehicle)["ho_prob"] for vehicle in self.controlled_vehicles)
+        info['agents_tran_all_rewards'] = tuple(
+            self.get_seperate_reward(action, vehicle)["tran_reward"] for vehicle in self.controlled_vehicles
+        )
+        info['agents_tele_all_rewards'] = tuple(
+            self._agent_rewards(action, vehicle)["tele_reward"] for vehicle in self.controlled_vehicles
+        )
+        info['agents_rewards'] = tuple(self._agent_reward(action, vehicle) for vehicle in self.controlled_vehicles)
+        info['agents_collided'] = tuple(self._agent_is_terminal(vehicle) for vehicle in self.controlled_vehicles)
+        info['distance_travelled'] = tuple(vehicle.position[0] for vehicle in self.controlled_vehicles)
+        info['agents_survived'] = self._is_truncated()
+        return info
+
+    def _agent_is_terminal(self, vehicle) -> bool:
+        return vehicle.crashed or (self.config["offroad_terminal"] and not vehicle.on_road)
+
+    def _is_truncated(self) -> bool:
+        return self.time >= self.config["duration"]
+
+    def _is_terminated(self) -> bool:
+        agent_terminal = [self._agent_is_terminal(vehicle) for vehicle in self.controlled_vehicles]
+        agg_fn = {'any': any, 'all': all}[self.config['termination_agg_fn']]
+        return agg_fn(agent_terminal)
+
+    def _simulate(self, action) -> None:
+        super()._simulate(action)
+        self.road.update()
+
+    def _reward(self, action: int) -> float:
+        """Aggregated reward, for cooperative agents"""
+        return sum(self._agent_reward(action, vehicle) for vehicle in self.controlled_vehicles) \
+               / len(self.controlled_vehicles)
+
+    def _rewards(self, action: int) -> Dict[Text, float]:
+        """Multi-objective rewards, for cooperative agents."""
+        agents_rewards = [self._agent_rewards(action, vehicle) for vehicle in self.controlled_vehicles]
+        return {
+            name: sum(agent_rewards[name] for agent_rewards in agents_rewards) / len(agents_rewards)
+            for name in agents_rewards[0].keys()
+        }
+
+    def _agent_reward(self, action: int, vehicle: Vehicle) -> float:
+        """Per-agent reward signal."""
+        tran_reward = self.get_seperate_reward(action, vehicle)["tran_reward"]
+        tele_reward = self._agent_rewards(action, vehicle)["tele_reward"]
+        reward = tran_reward + tele_reward
+        return reward
+
+    def _agent_rewards(self, action: int, vehicle: Vehicle) -> Dict[Text, float]:
+        """Per-agent per-objective reward signal."""
+        neighbours = self.road.network.all_side_lanes(vehicle.lane_index)
+        lane = vehicle.target_lane_index[2] if isinstance(vehicle, ControlledVehicle) \
+            else vehicle.lane_index[2]
+        forward_speed = vehicle.speed * np.cos(vehicle.heading)
+        scaled_speed = utils.lmap(forward_speed, self.config["reward_speed_range"], [0, 1])
+
+        vid = vehicle.id
+        result_rf = 0
+        if vehicle.target_current_bs is not None:
+            result_rf = self.road.get_performance_table()[vid, vehicle.target_current_bs]
+            if self.steps > 2:
+                result_rf *= 1 - (vehicle.target_ho / (self.steps))
+            result_rf = utils.lmap(result_rf, [0, self.config["tele_reward_threshold"]], [0, 200])
+        return {
+            "collision_reward": float(vehicle.crashed),
+            "right_lane_reward": lane / max(len(neighbours) - 1, 1),
+            "high_speed_reward": np.clip(scaled_speed, 0, 1),
+            "on_road_reward": float(vehicle.on_road),
+            "tele_reward": float(result_rf)
+        }
+
+    def get_seperate_reward(self, action: int, vehicle: Vehicle) -> dict:
+        tranKeys = ["collision_reward", "right_lane_reward", "high_speed_reward", "on_road_reward"]
+        rewards = self._agent_rewards(action, vehicle)
+        filterByKey = lambda keys: {x: rewards[x] for x in keys}
+        tranData = filterByKey(tranKeys)
+        tran_reward = sum(self.config.get(name, 0) * reward for name, reward in tranData.items())
+        tran_reward = utils.lmap(
+            tran_reward,
+            [self.config["collision_reward"], self.config["high_speed_reward"] + self.config["right_lane_reward"]],
+            [0, 1]
+        )
+        tran_reward *= rewards['on_road_reward']
+        return {
+            "tran_reward": float(tran_reward),
+        }
+
+    def get_ho(self, action: int, vehicle: Vehicle) -> dict:
+        ho_density = vehicle.target_ho / vehicle.position[0] if vehicle.position[0] != 0 else 0
+        ho_prob = vehicle.target_ho / max((self.steps), 1)
+        return {
+            "ho_density": float(ho_density),
+            "ho_prob": float(ho_prob),
+        }
+
