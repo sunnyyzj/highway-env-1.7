@@ -375,159 +375,113 @@ class Road(object):
 
 from ..sinr import *
 
+
 class BSRoad(Road):
-    
     def __init__(self, 
-                 rf_bs_count: int,  # 基站数量
-                 thz_bs_count: int,
-                 rf_bs_max_connections: int = 10,   # 基站最大连接数
-                 thz_bs_max_connections: int = 5,
-                 lane: int = 4,  # 车道数量
+                 gbs_count: int = 5,
+                 haps_count: int = 1,
+                 gbs_max_connections: int = 10,
+                 haps_max_connections: int = 100,
+                 lane: int = 4,
                  start: float = 0, 
                  length: float = 10000,
                  network: RoadNetwork = None, 
-                 vehicles: List['kinematics.Vehicle'] = None, 
-                 road_objects: List['objects.RoadObject'] = None, 
+                 vehicles: list = None, 
+                 road_objects: list = None, 
                  np_random: np.random.RandomState = None, 
                  record_history: bool = False
                  ) -> None:
         super().__init__(network, vehicles, road_objects, np_random, record_history)
-        self.rf_bs_count = rf_bs_count
-        self.thz_bs_count = thz_bs_count
-        
-        # 位置
-        self.bs_pos = np.zeros((self.rf_bs_count + self.thz_bs_count, 2))
-        self.bs_pos_3d = np.hstack((self.bs_pos, np.zeros((self.rf_bs_count + self.thz_bs_count, 1))))
-        # 已连接数量
-        self.bs_conn = np.zeros(self.rf_bs_count + self.thz_bs_count)
-        # 最大连接数量
-        self.bs_conn_max = np.array([rf_bs_max_connections] * rf_bs_count + [thz_bs_max_connections] * thz_bs_count)
-        # 各vehicles到基站的距离
-        self.dist = np.zeros(0)
-        # 等同于 HighwayEnvBS._create_bs_assignment_table() 中的 total_dr
-        self.total_dr = np.zeros(0)
-        self.total_dr_3d = np.zeros(0)
-        # 初始化各个基站的位置
-        self._set_bs_position(lane, start, length)
-    
+        self.gbs_count = gbs_count
+        self.haps_count = haps_count
+
+        # GBS positions (random in 1000x1000m area, z=0)
+        self.gbs_pos = np.zeros((gbs_count, 2))
+        self.gbs_pos[:, 0] = np.random.random(gbs_count) * 1000
+        self.gbs_pos[:, 1] = np.random.randint(-500, 500, gbs_count)
+        self.gbs_pos_3d = np.hstack((self.gbs_pos, np.zeros((gbs_count, 1))))
+
+        # HAPS position (fixed at center, high altitude)
+        self.haps_pos_3d = np.array([[500, 0, 20000]])  # shape (1,3)
+
+        # Connection counters
+        self.gbs_conn = np.zeros(gbs_count)
+        self.haps_conn = np.zeros(haps_count)
+        self.gbs_conn_max = np.ones(gbs_count) * gbs_max_connections
+        self.haps_conn_max = np.ones(haps_count) * haps_max_connections
+
+        # Distance and rate tables
+        self.dist_gbs = np.zeros(0)
+        self.dist_haps = np.zeros(0)
+        self.rate_gbs = np.zeros(0)
+        self.rate_haps = np.zeros(0)
+
+        self._set_bs_position(lane, start, length)  # for compatibility
+
     def _set_bs_position(self, lane, start, length):
-        cnt = self.rf_bs_count + self.thz_bs_count
-        # self.bs_pos[:, 0] = np.random.random(cnt) * length + start
-        # self.bs_pos[:, 1] = np.random.randint(0, 2, cnt) * StraightLane.DEFAULT_WIDTH * lane
-        '''
-        disable the BSs aside the road, random distribute BSs around 1000m * 1000m field
-        '''
-        self.bs_pos[:, 0] = np.random.random(cnt)*1000
-        # self.bs_pos[:, 1] = np.random.random(cnt)*1000
-        # self.bs_pos[:, 0] = np.random.randint(0,1000,cnt)
-        self.bs_pos[:, 1] = np.random.randint(-500,500,cnt)
-        self.bs_pos_3d = np.hstack((self.bs_pos, np.zeros((cnt, 1)))) #assume BSs have no height
-    '''
-    import numpy as np
+        # Already handled in __init__, keep for compatibility
+        pass
 
-# Extract the positions of the BSs and UAVs from the arrays
-bs_pos = self.bs_pos[:, 0:2]  # extract only the x,y positions of the BSs
-uav_pos = vehicles_pos_3d[:, 0:3]  # extract the x,y,z positions of the UAVs
-
-# Calculate the 2D distances between the BSs and UAVs
-dist_2d = np.sqrt(np.sum((bs_pos[:, np.newaxis, :] - uav_pos[:, :, 0:2])**2, axis=2))
-
-# Calculate the 3D distances between the BSs and UAVs
-dist_3d = np.sqrt(np.sum((bs_pos[:, np.newaxis, :] - uav_pos)**2, axis=2))
-
-print("2D distances between BSs and UAVs:")
-print(dist_2d)
-
-print("3D distances between BSs and UAVs:")
-print(dist_3d)
-
-    '''
-    
     def update(self):
-        # vehicles位置更新后, 更新total_dr
+        # Get UAV positions (assume all UAVs at 100m altitude if not specified)
         vehicles_pos = np.array([v.position for v in self.vehicles])
-        # vehicles_pos_3d = np.hstack((vehicles_pos, np.ones((len(vehicles_pos), 1)*100))) #assume all uavs have height of 100 m
-        vehicles_pos_3d = np.concatenate((vehicles_pos, np.expand_dims(np.ones(len(vehicles_pos))*100, axis=1)), axis=1)
-        # print('bs_pos\n',self.bs_pos)
-        # print('v3d \n' ,vehicles_pos_3d)
-        # print('vehicle_pos_3d',vehicles_pos_3d)
-        # np.sqrt(np.sum((bs_pos[:, np.newaxis, :] - uav_pos[:, :, 0:2])**2, axis=2))
-        # np.sqrt(np.sum((bs_pos[:, np.newaxis, :] - uav_pos)**2, axis=2))
+        if vehicles_pos.shape[1] == 2:
+            vehicles_pos_3d = np.concatenate((vehicles_pos, np.ones((len(vehicles_pos), 1)) * 100), axis=1)
+        else:
+            vehicles_pos_3d = vehicles_pos
 
-        # dist_2d = np.sqrt(((vehicles_pos[:, None, :] - self.bs_pos)**2).sum(axis=-1))
-        # print('bs_pos\n',self.bs_pos)
-        # print('bs_pos3d\n',self.bs_pos_3d)
-        # print('vehicles_pos\n',vehicles_pos)
-        # print('vehicles_pos_3d\n',vehicles_pos_3d)
-        # vehicles_pos =vehicles_pos.T
-        # vehicles_pos_3d = vehicles_pos_3d.T
-        # dist_2d = np.sqrt(np.sum((self.bs_pos_3d[:, np.newaxis, :] - vehicles_pos_3d[:, :, 0:2])**2, axis=2))
-        # dist_2d = np.sqrt(np.sum((self.bs_pos_3d[:, :, 0:2] - vehicles_pos_3d[:, :, 0:2])**2, axis=2))
-        # dists = np.sqrt(np.sum((A[:, np.newaxis, :] - B[np.newaxis, :, :])**2, axis=-1))
-        dist_2d = np.sqrt(np.sum((self.bs_pos[:, np.newaxis, :] - vehicles_pos[np.newaxis, :, :])**2, axis=-1))
-        dist_3d = np.sqrt(np.sum((self.bs_pos_3d[:, np.newaxis, :] - vehicles_pos_3d[np.newaxis, :, :])**2, axis=-1))
-        dist_2d,dist_3d = dist_2d.T,dist_3d.T
-        # dist_2d = cdist(self.bs_pos, vehicles_pos).T
-        # dist_3d = cdist(self.bs_pos_3d, vehicles_pos_3d).T
-        
-        # dist_2d = np.sqrt(np.sum((self.bs_pos - vehicles_pos)**2, axis=2))
-        # dist_3d = np.sqrt(np.sum((self.bs_pos_3d - vehicles_pos_3d)**2, axis=2))
+        # --- GBS ---
+        dist_2d_gbs = np.linalg.norm(self.gbs_pos[None, :, :] - vehicles_pos[:, None, :2], axis=-1)  # (N_uav, N_gbs)
+        dist_3d_gbs = np.linalg.norm(self.gbs_pos_3d[None, :, :] - vehicles_pos_3d[:, None, :], axis=-1)
+        # Use your new a2c_link for GBS
+        rate_gbs = a2c_link(dist_2d_gbs, dist_3d_gbs, vehicles_pos_3d)
+        self.dist_gbs = dist_3d_gbs
+        self.rate_gbs = rate_gbs
 
-        # dist_2d = np.sqrt(np.sum((self.bs_pos[:, np.newaxis, :] - vehicles_pos_all)**2, axis=2))
-        # dist_3d = np.sqrt(np.sum((self.bs_pos_3d[:, np.newaxis, :] - vehicles_pos_3d_all)**2, axis=2))
+        # --- HAPS ---
+        dist_2d_haps = np.linalg.norm(self.haps_pos_3d[0, :2] - vehicles_pos[:, :2], axis=-1, keepdims=True)  # (N_uav, 1)
+        dist_3d_haps = np.linalg.norm(self.haps_pos_3d[0, :] - vehicles_pos_3d, axis=-1, keepdims=True)       # (N_uav, 1)
+        # Use your new haps_datarate_matrix for HAPS
+        N_uav = vehicles_pos_3d.shape[0]
+        b_ratio = np.ones((N_uav, 1)) / N_uav  # equally divide bandwidth
+        p_ratio = np.ones((N_uav, 1)) / N_uav  # equally divide power
+        rate_haps = haps_datarate_matrix(dist_3d_haps, b_ratio, p_ratio)
+        self.dist_haps = dist_3d_haps
+        self.rate_haps = rate_haps
 
-
-        # self.dist = np.sqrt(((vehicles_pos_3d[:, None, :] - self.bs_pos_3d)**2).sum(axis=-1))
-        self.dist = dist_3d
-        # rf_dr, _ = rf_sinr_matrix(self.dist[:, :self.rf_bs_count])
-        # thz_dr, _ = thz_sinr_matrix(self.dist[:, self.rf_bs_count:])
-        # print('self.bs_pos\n',self.bs_pos)
-
-        '''
-        C2A Aeriation update
-        Input 3D
-        dist 2d,dist 3d, 3d bss,3d vs
-        a2c_link(dist_2d[:, :self.rf_bs_count],self.dist[:, :self.rf_bs_count],self.bs_pos_3d,vehicles_pos_3d)
-        '''
-        SNR_3d = a2c_link(dist_2d[:, :self.rf_bs_count],self.dist[:, :self.rf_bs_count],vehicles_pos_3d)
-        # SNR_3d = a2c_link(dist_2d,self.dist,vehicles_pos_3d)
-        # print('sir_3d \n' ,SNR_3d)
-
-        # print('conn \n' ,self.bs_conn)
-        # print('snr shape \n' ,SNR_3d.shape)
-        # print('self.bs_conn.shape\n',self.bs_conn.shape)
-        # self.bs_conn = np.reshape(self.bs_conn, (-1, 1))
-        self.total_dr_3d = SNR_3d / (self.bs_conn + 1e-8)
-        self.total_dr = SNR_3d / (self.bs_conn + 1e-8)
-        # self.total_dr = np.c_[rf_dr, thz_dr]
-    
     def get_distance(self, vid):
-        # rf基站, thz基站
-        return self.dist[vid, :self.rf_bs_count], self.dist[vid, self.rf_bs_count:]
+        # Return (gbs_distances, haps_distance)
+        return self.dist_gbs[vid, :], self.dist_haps[vid, :]
+
+    def get_rate(self, vid):
+        # Return (gbs_rates, haps_rate)
+        return self.rate_gbs[vid, :], self.rate_haps[vid, :]
 
     def get_conn(self):
-        # 返回已连接数量, 等同于 HighwayEnvBS.get_concurrent_user()
-        return self.bs_conn
-    
+        return self.gbs_conn, self.haps_conn
+
     def get_conn_rest(self):
-        return self.bs_conn_max - self.bs_conn
-    
-    def get_total_dr(self):
-        return self.total_dr
-    
+        return self.gbs_conn_max - self.gbs_conn, self.haps_conn_max - self.haps_conn
+
     def get_performance_table(self):
-        total_dr_with_threshold = self.total_dr #/ (self.bs_conn + 1e-8)
-        return total_dr_with_threshold
-    
-    def new_connect(self, old, new):
-        # 新的连接
+        # Returns both GBS and HAPS rates
+        return {'gbs': self.rate_gbs, 'haps': self.rate_haps}
+
+    def new_connect(self, old, new, is_haps=False):
+        # Update connection counters
         if old is not None:
-            self.bs_conn[old] -= 1
-        self.bs_conn[new] += 1
-    
-    def kind_of_bs(self, bid):
-        # 根据bid返回对应基站的种类
-        if bid < self.rf_bs_count:
-            return 'rf'
+            if is_haps:
+                self.haps_conn[old] -= 1
+            else:
+                self.gbs_conn[old] -= 1
+        if is_haps:
+            self.haps_conn[new] += 1
         else:
-            return 'thz'
+            self.gbs_conn[new] += 1
+
+    def kind_of_bs(self, bid):
+        if bid < self.gbs_count:
+            return 'gbs'
+        else:
+            return 'haps'
+        

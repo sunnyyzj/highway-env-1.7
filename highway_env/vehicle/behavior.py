@@ -488,7 +488,6 @@ class DefensiveVehicle(LinearVehicle):
                                MERGE_ACC_GAIN / (MERGE_VEL_RATIO * MERGE_TARGET_VEL),
                                2.0]
 
-# here
 class IDMVehicleWithTelecom(IDMVehicle):
     def __init__(self,
                 id: int,
@@ -496,7 +495,7 @@ class IDMVehicleWithTelecom(IDMVehicle):
                 position: Vector,
                 heading: float = 0,
                 speed: float = 0,
-                max_dd: float = 1000,   # 检测距离, 会返回该距离内的基站数量
+                max_dd: float = 1000,
                 target_lane_index: int = None,
                 target_speed: float = None,
                 route: Route = None,
@@ -510,57 +509,34 @@ class IDMVehicleWithTelecom(IDMVehicle):
         self.collecting_data = True
         self.id = id
         self.max_detection_distance = max_dd
-        self.target_current_bs = target_current_bs # or 'initial bs'
+        self.target_current_bs = target_current_bs
+
     def to_dict(self, origin_vehicle: "Vehicle" = None, observe_intentions: bool = True) -> dict:
         d = super().to_dict(origin_vehicle, observe_intentions)
-        # rf_cnt, thz_cnt 非被控车辆, 观测值为0
-        rf_dist, thz_dist = self.road.get_distance(self.id)
-        d['rf_cnt'] = np.sum(rf_dist <= self.max_detection_distance)
-        d['thz_cnt'] = np.sum(thz_dist <= self.max_detection_distance)
+        gbs_dist, _ = self.road.get_distance(self.id)
+        d['gbs_cnt'] = np.sum(gbs_dist <= self.max_detection_distance)
+        d['haps_cnt'] = 0  # No HAPS in this scenario
         return d
+
     def act(self, action: Union[dict, str] = None):
         if self.collecting_data:
             self.collect_data()
         super().act(action)
         old = self.target_current_bs
         new = self._find_closest_bs()
-        
         self.road.new_connect(old, new)
-        # self.env.shared_state.bs_assignment_table.loc[[vid], [old]] = 0
-        # self.env.shared_state.bs_assignment_table.loc[[vid], [new]] = 1
         self.target_current_bs = new
+
     def collect_data(self):
         pass
+
     def _find_closest_bs(self):
         vid = self.id
-        aim_bs = self.road.get_total_dr()[vid]
-        rest = self.road.get_conn_rest()
-        
-        # 以下部分替代了 HighwayEnvBS.recursive_select_max_bs() 函数
-        aim_bs_mm = 10 + aim_bs.max() - aim_bs.min()
-        vacant = aim_bs - (rest <= 0) * aim_bs_mm
+        gbs_rate, _ = self.road.get_rate(vid)
+        rest_gbs, _ = self.road.get_conn_rest()
+        rates = gbs_rate
+        rest = rest_gbs
+        penalty = 10 + rates.max() - rates.min()
+        vacant = rates - (rest <= 0) * penalty
         bid = np.argmax(vacant)
         return bid
-
-# class IDMVehicleWithTelecomUAV(IDMVehicleWithTelecom):
-#     def __init__(self,
-#                 id: int,
-#                 road: Road,
-#                 position: Vector,
-#                 heading: float = 0,
-#                 speed: float = 0,
-#                 max_dd: float = 1000,   # 检测距离, 会返回该距离内的基站数量
-#                 target_lane_index: int = None,
-#                 target_speed: float = None,
-#                 route: Route = None,
-#                 enable_lane_change: bool = True,
-#                 timer: float = None,
-#                 data: dict = None,
-#                 target_current_bs: int = None):
-#         super().__init__(road, position, heading, speed, target_lane_index, target_speed, route,
-#                         enable_lane_change, timer)
-#         self.data = data if data is not None else {}
-#         self.collecting_data = True
-#         self.id = id
-#         self.max_detection_distance = max_dd
-#         self.target_current_bs = target_current_bs # or 'initial bs'
